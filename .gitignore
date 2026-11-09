@@ -1,0 +1,8 @@
+# large simulated audio (regenerate with src/synth2.py / evaluate scripts)
+sessions_v2/
+*.wav
+# design drafts for the title
+site/options/
+__pycache__/
+*.pyc
+.DS_Store

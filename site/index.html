@@ -1,0 +1,990 @@
+<title>Parna</title>
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800;900&family=Instrument+Serif:ital@0;1&family=Bagel+Fat+One&family=Monoton&family=Archivo:wdth,wght@62..125,400;62..125,600;62..125,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: a Y2K poster that scrolls. Holographic ground, chrome type, glass "system windows" that hold the content,
+   one pinned scroll story, a media-player window for the real session, a cobalt halftone band for results. */
+:root {
+  color-scheme: light;
+  --ground: #e9e8f0;          /* silver paper */
+  --ink: #0d0d12;
+  --ink-2: #4a4a5c;
+  --cobalt: #1f3fd1;
+  --pink: #ff6fa8;
+  --cream: #f3efe4;
+  --glass: rgba(255, 255, 255, 0.46);
+  --glass-line: rgba(255, 255, 255, 0.85);
+  --good: #12a36b;
+  --bad: #ff3d5a;
+  --display: "Unbounded", "Arial Black", sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --holo: conic-gradient(from 180deg at 50% 50%, #c9f3ff, #d7c4ff, #ffc6e6, #fff3c4, #c4ffe6, #c4dcff, #c9f3ff);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.55 var(--body); font-stretch: 100%; overflow-x: hidden; }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1180px; margin: 0 auto; }
+a { color: var(--cobalt); }
+:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; }
+
+/* ---------- holographic ground (fixed, slowly turning) */
+.holo-bg { position: fixed; inset: -20vmax; z-index: -2; background: var(--holo); filter: blur(60px) saturate(1.15); opacity: .75; animation: spin 40s linear infinite; }
+.grain { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .18; mix-blend-mode: multiply;
+  background-image: radial-gradient(rgba(0,0,0,.35) 0.6px, transparent 0.7px); background-size: 3px 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- top bar */
+.bar { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: rgba(233,232,240,.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,.7); padding-top: env(safe-area-inset-top, 0px); }
+.bar .in { display: flex; align-items: center; gap: 14px; height: 48px; font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.bar .pill { border: 1.5px solid var(--ink); border-radius: 999px; padding: 4px 12px; background: var(--glass); backdrop-filter: blur(8px); }
+.bar nav { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.bar nav a { color: var(--ink); text-decoration: none; padding: 4px 10px; border-radius: 999px; background: var(--glass); backdrop-filter: blur(8px); border: 1px solid var(--glass-line); }
+.bar nav a:hover { background: var(--ink); color: #fff; }
+.loadbar { height: 3px; background: linear-gradient(90deg, var(--cobalt), var(--pink)); transform-origin: 0 50%; transform: scaleX(0); }
+@media (max-width: 640px) { .coords { display: none; } .bar nav a:nth-child(n+3) { display: none; } }
+
+/* ---------- hero */
+.hero { position: relative; min-height: min(100svh, 980px); display: grid; align-items: end; padding-block: 90px 40px; }
+#blob { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero .copy { position: relative; display: grid; gap: 18px; width: 100%; pointer-events: none; }
+.hero .copy > * { pointer-events: auto; }
+.wordmark {
+  font: italic 400 clamp(72px, 12vw, 168px)/.95 "Instrument Serif", Georgia, serif; letter-spacing: -0.035em; margin: 0; color: var(--ink);
+  display: flex; align-items: flex-start; gap: .06em;
+}
+.wordmark canvas { display: none; width: min(640px, 100%); aspect-ratio: 2.2; filter: drop-shadow(0 18px 18px rgba(30,30,45,.32)); }
+.wordmark.live canvas { display: block; }
+.wordmark .wm-neon { font: 400 clamp(54px, 8.4vw, 116px)/1 Monoton, "Unbounded", sans-serif; font-style: normal; letter-spacing: 0; color: #7a4fe0; text-shadow: 0 0 18px rgba(255,120,200,.55), 0 0 2px rgba(122,79,224,.4); text-transform: uppercase; white-space: nowrap; }
+.wordmark .wm-flat { width: min(600px, 100%); display: block; overflow: visible; font-style: normal; letter-spacing: 0; }
+.wordmark.live .wm-flat { display: none; }
+.wordmark .wm-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.wordmark.live .wm-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.wordmark.live .spark-mark { display: none; }
+.wordmark .spark-mark { width: .22em; height: .22em; margin-top: .12em; background: var(--pink); flex: 0 0 auto;
+  clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%); animation: twinkle 3.2s ease-in-out infinite; }
+@keyframes twinkle { 50% { transform: rotate(45deg) scale(.7); } }
+.chrome {
+  font: 900 clamp(64px, 18vw, 250px)/.86 var(--display); letter-spacing: -0.04em; margin: 0; text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #dfe4ee 22%, #7d8496 45%, #23262f 50%, #9aa3b8 56%, #f4f6fb 72%, #b9c0cf 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  padding-top: .1em;
+  filter: drop-shadow(0 0 1px rgba(13,13,18,.7)) drop-shadow(0 2px 0 rgba(255,255,255,.9)) drop-shadow(0 10px 18px rgba(31,63,209,.25));
+}
+.chrome .row { display: block; }
+.tag { margin: .1em 0 0; font: 800 clamp(20px, 2.6vw, 34px)/1.1 var(--body); font-stretch: 125%; font-style: italic; color: var(--pink); letter-spacing: -0.02em; transform: skewX(-8deg); text-shadow: 0 1px 0 #fff; }
+.chrome .row.small { font-size: .5em; letter-spacing: -0.02em; }
+.sub { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: end; justify-content: space-between; }
+.sub p { margin: 0; max-width: 46ch; font-size: clamp(16px, 1.6vw, 19px); }
+.badge { width: 128px; height: 128px; flex: 0 0 auto; display: grid; place-items: center; text-align: center;
+  font: 800 15px/1.05 var(--display); color: var(--ink); background: var(--pink);
+  clip-path: polygon(50% 0, 61% 14%, 79% 6%, 81% 25%, 98% 31%, 89% 47%, 100% 62%, 82% 70%, 82% 89%, 63% 86%, 50% 100%, 37% 86%, 18% 89%, 18% 70%, 0 62%, 11% 47%, 2% 31%, 19% 25%, 21% 6%, 39% 14%);
+  animation: wobble 6s ease-in-out infinite; }
+@keyframes wobble { 50% { transform: rotate(-12deg) scale(1.05); } }
+.coords { position: absolute; top: -40vh; right: 0; font: 500 11px/1.6 var(--mono); text-align: right; letter-spacing: .08em; }
+.oval { display: inline-block; border: 1.5px solid var(--cobalt); color: var(--cobalt); border-radius: 50%; padding: 6px 18px; font: 800 14px var(--display); font-style: italic; transform: rotate(-6deg); }
+
+/* ---------- marquee */
+.marquee { background: var(--ink); color: var(--cream); overflow: hidden; border-block: 2px solid var(--ink); }
+.marquee .track { display: flex; gap: 40px; width: max-content; padding-block: 14px; font: 800 clamp(18px, 2.4vw, 28px) var(--body); font-stretch: 125%; text-transform: uppercase; animation: slide 28s linear infinite; }
+.marquee .track span:nth-child(even) { color: var(--pink); }
+@keyframes slide { to { transform: translateX(-50%); } }
+
+/* ---------- glass windows */
+.win { background: var(--glass); border: 1.5px solid var(--glass-line); border-radius: 14px; backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 20px 50px -20px rgba(31,63,209,.35); min-width: 0; overflow: hidden; }
+.win .tb { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid rgba(13,13,18,.12); font: 500 12px var(--mono); cursor: grab; user-select: none; touch-action: none; }
+.win .tb .ctl { margin-left: auto; display: flex; gap: 6px; }
+.win .tb .ctl i { width: 14px; height: 14px; border: 1.2px solid var(--ink); border-radius: 3px; display: inline-block; }
+.win .body { padding: 18px; display: grid; gap: 12px; }
+.win.drag { cursor: grabbing; z-index: 5; }
+section { position: relative; }
+.sec { padding-block: clamp(70px, 10vw, 140px); }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); display: flex; gap: 10px; align-items: center; }
+.eyebrow::before { content: ""; width: 26px; height: 1.5px; background: currentColor; }
+h2 { font: 900 clamp(34px, 6vw, 76px)/.95 var(--display); margin: 10px 0 0; letter-spacing: -0.03em; text-wrap: balance; text-transform: uppercase; }
+h3 { font: 800 20px/1.2 var(--display); margin: 0; letter-spacing: -0.01em; }
+.lead { font-size: clamp(17px, 1.8vw, 21px); max-width: 52ch; margin: 18px 0 0; }
+
+/* problem section: three windows scattered like a desktop */
+.desk { position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; margin-top: 40px; }
+.desk .w1 { grid-column: 1 / span 5; transform: rotate(-1.5deg); }
+.desk .w2 { grid-column: 6 / span 4; margin-top: 70px; transform: rotate(1.2deg); }
+.desk .w3 { grid-column: 9 / span 4; margin-top: -10px; transform: rotate(-.6deg); }
+@media (max-width: 860px) { .desk > .win { grid-column: 1 / -1 !important; margin-top: 0 !important; } }
+.big { font: 900 clamp(42px, 6vw, 72px)/1 var(--display); letter-spacing: -0.04em; }
+.list { margin: 0; padding: 0; list-style: none; font: 500 13px/1.9 var(--mono); }
+.list li { display: flex; gap: 10px; }
+.list li span { color: var(--ink-2); }
+.loading { height: 10px; border: 1px solid var(--ink); border-radius: 2px; background: repeating-linear-gradient(90deg, var(--cobalt) 0 6px, transparent 6px 9px); background-size: 0 100%; background-repeat: no-repeat; }
+.in-view .loading { animation: fill 2.4s steps(24) forwards; }
+@keyframes fill { to { background-size: 100% 100%; } }
+
+/* reveal: elements stay visible; entering view plays a short glitch-in */
+.reveal.in-view { animation: glitchIn .7s steps(1) both; }
+@keyframes glitchIn { 0% { clip-path: inset(0 0 60% 0); transform: translateX(-6px); } 15% { clip-path: inset(40% 0 0 0); transform: translateX(6px); } 30% { clip-path: inset(0 0 20% 0); transform: none; } 45%,100% { clip-path: inset(0); } }
+
+/* ---------- scroll story */
+.story { height: 360vh; }
+.story .pin { position: sticky; top: 0; height: 100svh; display: grid; grid-template-rows: auto 1fr auto; padding-block: 70px 24px; gap: 12px; }
+#storyCanvas { width: 100%; height: 100%; display: block; min-height: 0; }
+.story .cap { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.story .num { font: 900 clamp(40px, 7vw, 90px)/1 var(--display); color: transparent; -webkit-text-stroke: 1.5px var(--ink); }
+.story .cap h3 { font-size: clamp(20px, 3vw, 34px); text-transform: uppercase; }
+.story .cap p { margin: 6px 0 0; max-width: 60ch; color: var(--ink-2); }
+.dots { display: flex; gap: 8px; }
+.dots i { width: 34px; height: 4px; background: rgba(13,13,18,.18); border-radius: 2px; }
+.dots i.on { background: var(--ink); }
+
+/* ---------- player */
+.player { margin-top: 40px; }
+.player .tb { cursor: default; }
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.btn { font: 600 14px var(--body); font-stretch: 110%; color: var(--ink); background: rgba(255,255,255,.65); border: 1.5px solid var(--ink); border-radius: 999px; padding: 9px 16px; cursor: pointer; }
+.btn:hover { background: #fff; }
+.btn.play { background: var(--ink); color: #fff; width: 52px; height: 52px; padding: 0; display: grid; place-items: center; }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; font: 600 13px var(--body); padding: 9px 14px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--cobalt); color: #fff; }
+.clock { margin-left: auto; font: 600 14px var(--mono); font-variant-numeric: tabular-nums; }
+#lanes { width: 100%; height: 210px; display: block; border-radius: 10px; background: rgba(255,255,255,.55); }
+#mini { width: 100%; height: 44px; display: block; border-radius: 8px; cursor: pointer; }
+.pgrid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .pgrid { grid-template-columns: 1fr; } .clock { margin-left: 0; } }
+.readrow { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(13,13,18,.25); align-items: baseline; }
+.readrow b { font: 600 17px var(--mono); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 500 12px var(--mono); color: var(--ink-2); }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- results band (cobalt halftone poster) */
+.band { background: var(--cobalt); color: var(--cream); overflow: hidden; }
+.band::before { content: ""; position: absolute; inset: 0; opacity: .28; background-image: radial-gradient(#0a1a6b 1.2px, transparent 1.3px); background-size: 7px 7px; pointer-events: none; }
+.band .eyebrow { color: #c9d3ff; }
+.band h2 { color: var(--cream); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-top: 48px; border-top: 2px solid var(--cream); }
+.stat { padding: 22px 18px 22px 0; border-right: 1px solid rgba(243,239,228,.35); min-width: 0; }
+.stat:last-child { border-right: 0; }
+.stat .n { font: 900 clamp(34px, 4.6vw, 64px)/1 var(--display); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: #fff; }
+.stat .n small { font-size: .38em; letter-spacing: 0; }
+.stat p { margin: 10px 0 0; font-size: 14px; color: #dfe5ff; max-width: 26ch; }
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat:nth-child(2) { border-right: 0; } .stat { padding-left: 0; border-bottom: 1px solid rgba(243,239,228,.35); } }
+.fails { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 56px; }
+@media (max-width: 860px) { .fails { grid-template-columns: 1fr; } }
+.fail { background: var(--cream); color: var(--ink); border-radius: 14px; padding: 20px; position: relative; display: grid; gap: 8px; }
+.fail .st { position: absolute; top: -18px; right: 14px; background: var(--pink); color: var(--ink); font: 800 12px var(--display); padding: 10px 12px; transform: rotate(6deg);
+  clip-path: polygon(50% 0, 63% 18%, 85% 10%, 82% 33%, 100% 50%, 82% 67%, 85% 90%, 63% 82%, 50% 100%, 37% 82%, 15% 90%, 18% 67%, 0 50%, 18% 33%, 15% 10%, 37% 18%); width: 74px; height: 74px; display: grid; place-items: center; text-align: center; line-height: 1; }
+.fail p { margin: 0; font-size: 15px; }
+
+/* ---------- next / footer */
+.next { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-top: 40px; }
+@media (max-width: 860px) { .next { grid-template-columns: 1fr; } }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; }
+.steps li::before { content: counter(s, decimal-leading-zero); font: 600 13px var(--mono); border: 1.5px solid var(--ink); border-radius: 999px; height: 28px; display: grid; place-items: center; }
+footer { background: var(--ink); color: var(--cream); padding-block: 36px calc(36px + env(safe-area-inset-bottom, 0px)); }
+footer .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.beats { width: 160px; height: 42px; display: block; flex: 0 0 auto; }
+footer a { color: var(--pink); }
+
+/* sparkles (cursor + clicks) */
+.spark { position: fixed; z-index: 30; pointer-events: none; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  background: var(--ink); clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%); animation: spark .8s ease-out forwards; }
+@keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(0) rotate(90deg); opacity: 0; } }
+/* ---------- who leads */
+.leadgrid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; margin-top: 40px; align-items: start; }
+@media (max-width: 860px) { .leadgrid { grid-template-columns: 1fr; } }
+#leadCanvas { width: 100%; height: 300px; display: block; border-radius: 10px; background: rgba(255,255,255,.55); }
+.verdict { font: 900 clamp(26px, 3.4vw, 40px)/1.05 var(--display); text-transform: uppercase; letter-spacing: -0.02em; }
+.meter { display: grid; grid-template-columns: 92px 1fr 44px; gap: 10px; align-items: center; font: 500 12px var(--mono); }
+.meter .tr { height: 12px; border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.6); }
+.meter .tr i { display: block; height: 100%; width: 0; transition: width .4s; }
+.acc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.acc div { border: 1.5px solid var(--ink); border-radius: 12px; padding: 10px; background: rgba(255,255,255,.5); }
+.acc b { display: block; font: 900 26px/1 var(--display); }
+.acc span { font: 500 11px/1.3 var(--mono); color: var(--ink-2); }
+/* ---------- report */
+.repgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 18px; margin-top: 40px; align-items: start; }
+@media (max-width: 860px) { .repgrid { grid-template-columns: 1fr; } }
+.paper { background: var(--cream); border-radius: 6px; padding: 22px; box-shadow: 0 18px 40px -18px rgba(13,13,18,.45); position: relative; font-size: 15px; }
+.paper::after { content: ""; position: absolute; right: 18px; top: 18px; width: 90px; height: 28px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px); opacity: .8; }
+.paper h3 { font-size: 22px; padding-right: 100px; }
+.paper .meta { font: 500 12px var(--mono); color: var(--ink-2); margin: 4px 0 14px; }
+.paper ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; }
+.paper .note { margin-top: 14px; font: 500 11px/1.5 var(--mono); color: var(--ink-2); border-top: 1px dashed rgba(13,13,18,.3); padding-top: 10px; }
+.up { color: var(--good); font-weight: 600; } .down { color: var(--bad); font-weight: 600; }
+.ctrls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.weeks { display: flex; gap: 4px; flex-wrap: wrap; }
+.weeks button { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--ink); background: rgba(255,255,255,.6); font: 600 13px var(--mono); cursor: pointer; color: var(--ink); }
+.weeks button[aria-pressed="true"] { background: var(--pink); }
+#progCanvas { width: 100%; height: 190px; display: block; border-radius: 10px; background: rgba(255,255,255,.55); }
+.songs { display: grid; gap: 6px; }
+.song { display: grid; grid-template-columns: minmax(0, 170px) 1fr 44px; gap: 10px; align-items: center; font: 500 12px var(--mono); }
+.song .tr { height: 14px; background: rgba(13,13,18,.08); border-radius: 3px; overflow: hidden; }
+.song .tr i { display: block; height: 100%; background: var(--cobalt); transition: width .4s; }
+.song.fav .tr i { background: var(--pink); }
+.song.fav span:first-child::after { content: " ★ favourite"; color: var(--pink); }
+select.btn { appearance: none; padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+@media (prefers-reduced-motion: reduce) {
+  .holo-bg, .badge, .marquee .track, .wordmark .spark-mark { animation: none; }
+  .reveal.in-view { animation: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+
+<div class="holo-bg" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="bar">
+  <div class="in gutter wrap">
+    <span class="pill">Parna ✦ 2026</span>
+    <nav aria-label="Sections">
+      <a href="#problem">Problem</a><a href="#story">How</a><a href="#player">Listen</a><a href="#results">Results</a><a href="#lead">Lead</a><a href="#report">Report</a>
+    </nav>
+  </div>
+  <div class="loadbar" id="loadbar"></div>
+</header>
+
+<main>
+  <section class="hero gutter" id="top">
+    <canvas id="blob" aria-hidden="true"></canvas>
+    <div class="wrap copy">
+      <div class="coords" aria-hidden="true">SESSION_70000<br>90 BPM ✦ 22.05 KHZ<br>3 PHONES ✦ 1 ROOM</div>
+      <h1 class="wordmark" id="wm"><span class="wm-neon">parna</span></h1>
+      <p class="tag">For the ones who speak in rhythm.</p>
+      <div class="sub">
+        <p><b>Who kept the beat?</b> Parna measures how a therapist and client play together, from a single phone recording: whether they joined in, how closely they kept time, and who was leading. It's built for music therapists, who today judge this by ear and write it up from memory.</p>
+        <div class="badge" aria-hidden="true">3–4<br>MS</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true"><div class="track" id="track"></div></div>
+
+  <section class="sec gutter" id="problem">
+    <div class="wrap">
+      <div class="eyebrow">01 ✦ the problem</div>
+      <h2>Keeping the beat is therapy</h2>
+      <p class="lead">Matching a shared rhythm is a common goal for autistic children and in neurologic rehab. Therapists have to document progress, but there's no easy way to measure it from an ordinary session with real drums.</p>
+      <div class="desk">
+        <div class="win w1 reveal" data-drag>
+          <div class="tb">session_note.txt<span class="ctl"><i></i><i></i></span></div>
+          <div class="body">
+            <h3>Written from memory</h3>
+            <p style="margin:0">A <a href="https://humanfactors.jmir.org/2023/1/e46528/PDF" target="_blank" rel="noopener">2023 study</a> found that collecting and documenting outcomes is a real burden in medical music therapy. "Client kept the beat better today" is a judgement call.</p>
+            <div class="loading" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="win w2 reveal" data-drag>
+          <div class="tb">existing_tools.dll<span class="ctl"><i></i></span></div>
+          <div class="body">
+            <ul class="list">
+              <li><span>01 //</span> need electronic MIDI drums</li>
+              <li><span>02 //</span> lab setups, not therapy rooms</li>
+              <li><span>03 //</span> no plain-recording option</li>
+            </ul>
+          </div>
+        </div>
+        <div class="win w3 reveal" data-drag>
+          <div class="tb">question.exe<span class="ctl"><i></i><i></i><i></i></span></div>
+          <div class="body">
+            <div class="big">1 phone.<br>2 players.</div>
+            <p style="margin:0">Can one recording tell whose hit is whose, closely enough to measure timing in milliseconds?</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="story gutter" id="story" aria-label="How it works, told as you scroll">
+    <div class="pin wrap">
+      <div>
+        <div class="eyebrow">02 ✦ how it works</div>
+        <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+      <canvas id="storyCanvas" role="img" aria-label="Animation of drum hits: two players, merged by the standard detector, separated by calibration"></canvas>
+      <div class="cap" aria-live="polite">
+        <div class="num" id="stNum">01</div>
+        <div><h3 id="stTitle">Two players, one beat</h3><p id="stText">The therapist plays a steady beat on a frame drum. The client follows on a shaker. When the client is in time, their hits land within a few milliseconds of the therapist's.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec gutter" id="player">
+    <div class="wrap">
+      <div class="eyebrow">03 ✦ listen</div>
+      <h2>Play a session</h2>
+      <p class="lead">A full two-minute simulated session, as one phone on the table hears it. Switch methods and watch the hits: hollow rings are the truth, green dots are hits found within 50 ms, and red marks a miss or a mistake.</p>
+      <div class="win player reveal">
+        <div class="tb">session_70000.mp3 <span style="opacity:.6">✦ frame drum + shaker ✦ 90 bpm</span><span class="ctl"><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="transport">
+            <button class="btn play" id="play" type="button" aria-label="Play">▶</button>
+            <div class="seg" role="group" aria-label="Detection method">
+              <button id="m-cal" type="button" aria-pressed="true">Calibrated</button>
+              <button id="m-blind" type="button" aria-pressed="false">Standard detector</button>
+            </div>
+            <span class="clock" id="clock">0:00.0 / 2:08</span>
+          </div>
+          <canvas id="lanes" role="img" aria-label="Hit lanes for therapist and client around the current moment"></canvas>
+          <canvas id="mini" role="img" aria-label="Whole session; click to jump"></canvas>
+          <div class="legend"><span><i style="border:2px solid #4a4a5c"></i>true hit</span><span><i style="background:var(--good)"></i>found within 50 ms</span><span><i style="background:var(--bad)"></i>wrong or missed</span></div>
+          <div class="pgrid">
+            <div>
+              <div class="eyebrow">now playing</div>
+              <h3 id="exName" style="margin-top:6px">Calibration</h3>
+              <p id="exText" style="margin:6px 0 0;font:13px/1.6 var(--mono);color:var(--ink-2);white-space:pre-line">Each player taps alone five times. The calibrated method learns what each instrument sounds like from these taps.</p>
+            </div>
+            <div>
+              <div class="eyebrow">client timing, this exercise</div>
+              <div class="readrow"><span>True average</span><b id="rTrue">n/a</b></div>
+              <div class="readrow"><span>Calibrated says</span><b id="rCal">n/a</b></div>
+              <div class="readrow"><span>Standard detector says</span><b id="rBlind">n/a</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec band gutter" id="results">
+    <div class="wrap" style="position:relative">
+      <div class="eyebrow">04 ✦ results, 60 held-out simulated sessions</div>
+      <h2>Calibration is the trick</h2>
+      <p class="lead" style="color:#dfe5ff">Five solo taps per player at the start (two turned out to be enough) let the tool separate the instruments, even when they hit at the same moment.</p>
+      <div class="stats">
+        <div class="stat"><div class="n"><span data-count="4" data-pre="3–">3–4</span><small> ms</small></div><p>median timing error per exercise, different-sounding instruments</p></div>
+        <div class="stat"><div class="n"><span data-count="172" data-pre="104–">104–172</span><small> ms</small></div><p>error of the standard detector on the same sessions</p></div>
+        <div class="stat"><div class="n"><span data-count="255">255</span><small>/255</small></div><p>answered calls detected in call and response</p></div>
+        <div class="stat"><div class="n"><span data-count="2">2</span><small> taps</small></div><p>of calibration per player were enough (client F1 0.95)</p></div>
+      </div>
+      <div class="fails">
+        <div class="fail reveal"><div class="st">Still open</div><h3>Identical drums</h3><p>Two djembes sound the same, so templates cannot tell them apart. Client F1 drops to 0.64.</p></div>
+        <div class="fail reveal"><div class="st">Didn't work</div><h3>Two microphones</h3><p>Using the phone's two mics to locate each player looked good in a pilot, but on the full test it didn't help (0.62 vs 0.64).</p></div>
+        <div class="fail reveal"><div class="st">Didn't work</div><h3>Singing detector</h3><p>Pitch tracking mistook drum tones and the therapist's harmonics for the client, and flagged singing every time.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec gutter" id="lead">
+    <div class="wrap">
+      <div class="eyebrow">05 ✦ who's leading?</div>
+      <h2>Lead or follow</h2>
+      <p class="lead">In free play the therapist often follows the client on purpose, to meet them where they are. So the tool also asks who is adapting to whom. Each player's next hit leans toward the other's last one, and whoever leans less is leading. Pick a leader and watch the tool work it out from the hits alone.</p>
+      <div class="leadgrid">
+        <div class="win reveal">
+          <div class="tb">free_play.sim <span style="opacity:.6">✦ live</span><span class="ctl"><i></i><i></i></span></div>
+          <div class="body">
+            <div class="transport">
+              <div class="seg" role="group" aria-label="Who leads">
+                <button type="button" data-lead="therapist" aria-pressed="true">Therapist leads</button>
+                <button type="button" data-lead="client" aria-pressed="false">Client leads</button>
+                <button type="button" data-lead="mutual" aria-pressed="false">Both adapt</button>
+              </div>
+            </div>
+            <canvas id="leadCanvas" role="img" aria-label="Two players' hits scrolling past, with each player's tempo underneath"></canvas>
+            <div class="legend"><span><i style="background:#1f3fd1"></i>therapist</span><span><i style="background:#ff4f8f"></i>client</span><span>lines below: each player's tempo (4-beat average); the leader sets it, the follower tracks it</span></div>
+          </div>
+        </div>
+        <div class="win reveal" data-drag>
+          <div class="tb">verdict.exe<span class="ctl"><i></i></span></div>
+          <div class="body">
+            <div class="eyebrow">measured from the last 24 beats</div>
+            <div class="verdict" id="verdict">Listening…</div>
+            <div class="meter"><span>therapist leans</span><span class="tr"><i id="mTh" style="background:#1f3fd1"></i></span><b id="vTh">n/a</b></div>
+            <div class="meter"><span>client leans</span><span class="tr"><i id="mCl" style="background:#ff4f8f"></i></span><b id="vCl">n/a</b></div>
+            <p style="margin:0;font-size:14px;color:var(--ink-2)">How often it's right on 40 simulated sessions, from one phone recording, when the client played enough beats to judge (38 of 50 free plays; otherwise it says it can't tell):</p>
+            <div class="acc" id="leadAcc"></div>
+            <p style="margin:0;font:12px/1.5 var(--mono);color:var(--ink-2)">"Both adapt" is the hard case: in a 20-beat exercise it's often mistaken for one player leading.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec gutter" id="report">
+    <div class="wrap">
+      <div class="eyebrow">06 ✦ the session report</div>
+      <h2>A note that writes itself</h2>
+      <p class="lead">This is the part therapists asked for: documentation. Five simulated clients came for eight weekly sessions each, getting better at their own pace, and each has a hidden favourite song. Every report below comes from the single phone recording alone.</p>
+      <div class="ctrls" style="margin-top:28px">
+        <select class="btn" id="clientSel" aria-label="Client"></select>
+        <div class="weeks" id="weeks" role="group" aria-label="Week"></div>
+      </div>
+      <div class="repgrid">
+        <div class="paper reveal" aria-live="polite">
+          <h3 id="repTitle">Session report</h3>
+          <div class="meta" id="repMeta"></div>
+          <ul id="repList"></ul>
+          <div class="note">Generated from one phone recording. Simulated client; not a clinical assessment.</div>
+        </div>
+        <div style="display:grid;gap:18px">
+          <div class="win reveal">
+            <div class="tb">progress.chart<span class="ctl"><i></i><i></i></span></div>
+            <div class="body">
+              <canvas id="progCanvas" role="img" aria-label="Engagement score across eight weeks"></canvas>
+              <div class="legend"><span><i style="background:#1f3fd1"></i>measured from the recording</span><span><i style="border:2px dashed #4a4a5c"></i>true value</span></div>
+            </div>
+          </div>
+          <div class="win reveal">
+            <div class="tb">songs.db<span class="ctl"><i></i></span></div>
+            <div class="body">
+              <div class="eyebrow">share of beats played, by song, up to this week</div>
+              <div class="songs" id="songs"></div>
+              <button class="btn" type="button" id="reveal" style="justify-self:start">Reveal the hidden favourite</button>
+              <p style="margin:0;font:12px/1.5 var(--mono);color:var(--ink-2)" id="songNote"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec gutter" id="next">
+    <div class="wrap">
+      <div class="eyebrow">07 ✦ next</div>
+      <h2>From simulation to real rooms</h2>
+      <div class="next">
+        <div class="win reveal" data-drag>
+          <div class="tb">roadmap.txt<span class="ctl"><i></i></span></div>
+          <div class="body">
+            <ol class="steps">
+              <li><span>Record 20 scripted sessions with two real players and three phones, and check the answer key by hand.</span></li>
+              <li><span>Rerun the same test to measure how much the simulation flatters the method.</span></li>
+              <li><span>Check the lead or follow measure on real duets where one person is told to lead.</span></li>
+              <li><span>Try to split identical drums using stroke-level templates or the therapist's steady beat.</span></li>
+              <li><span>Show session reports to music therapists and ask which measures belong in a progress note.</span></li>
+            </ol>
+          </div>
+        </div>
+        <div class="win reveal" data-drag>
+          <div class="tb">read_more.exe<span class="ctl"><i></i><i></i></span></div>
+          <div class="body">
+            <h3>The full write-up</h3>
+            <p style="margin:0">Methods, every table with confidence intervals, and the limitations, in a four-page paper-style report.</p>
+            <p style="margin:0"><a class="btn" href="https://claude.ai/artifact/4rSXmgwCubZ12g2utp7uf3" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Open the report ↗</a></p>
+            <p style="margin:0;font:12px var(--mono);color:var(--ink-2)">All results come from simulated audio: a modelled room, synthesised instruments and a text-to-speech therapist, with every hit time known exactly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="gutter">
+  <div class="wrap row">
+    <svg class="beats" viewBox="0 0 160 42" role="img" aria-label="Two players' beats, slightly out of step"><g fill="var(--cream)"><rect x="6" y="4" width="2.4" height="15" /><rect x="19" y="4" width="2.4" height="15" /><rect x="32" y="4" width="2.4" height="15" /><rect x="45" y="4" width="2.4" height="15" /><rect x="58" y="4" width="2.4" height="15" /><rect x="71" y="4" width="2.4" height="15" /><rect x="84" y="4" width="2.4" height="15" /><rect x="97" y="4" width="2.4" height="15" /><rect x="110" y="4" width="2.4" height="15" /><rect x="123" y="4" width="2.4" height="15" /><rect x="136" y="4" width="2.4" height="15" /><rect x="149" y="4" width="2.4" height="15" /></g><g fill="#ff8cc6"><rect x="7.5" y="23" width="2.4" height="15" /><rect x="18" y="23" width="2.4" height="15" /><rect x="34.5" y="23" width="2.4" height="15" /><rect x="45.5" y="23" width="2.4" height="15" /><rect x="56" y="23" width="2.4" height="15" /><rect x="74" y="23" width="2.4" height="15" /><rect x="85" y="23" width="2.4" height="15" /><rect x="96.5" y="23" width="2.4" height="15" /><rect x="112" y="23" width="2.4" height="15" /><rect x="123" y="23" width="2.4" height="15" /><rect x="134.5" y="23" width="2.4" height="15" /><rect x="150" y="23" width="2.4" height="15" /></g></svg>
+    <span>Parna ✦ a research project by Anika</span>
+    <span>parna (Sanskrit): a leaf. It can't speak, but it shows you the wind.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const D = {"duration": 128.743492063492, "bpm": 90.0, "instruments": {"therapist": "frame_drum", "client": "shaker"}, "rt60": 0.3, "snr_db": 10.0, "calibration": {"therapist": [4.6137414965986405, 7.46374149659864], "client": [8.163741496598641, 11.01374149659864]}, "truth": {"therapist": [4.7262, 5.2459, 5.7893, 6.3517, 6.8594, 13.8523, 14.508, 15.1878, 15.8402, 16.5237, 17.1875, 17.8506, 18.5052, 19.1876, 19.8629, 20.5364, 21.1742, 21.8506, 22.5142, 23.175, 23.8396, 24.5269, 28.4847, 29.4827, 29.814, 30.1445, 34.1128, 35.4405, 35.7734, 36.1123, 36.4419, 39.7398, 40.419, 42.0833, 49.5278, 50.1989, 50.8672, 51.5379, 52.1999, 52.8668, 53.5579, 54.2582, 54.9687, 55.71, 56.4691, 57.2516, 58.063, 58.8738, 59.6996, 60.5555, 61.4259, 62.3117, 63.2063, 64.0933, 64.9803, 65.8585, 66.7458, 67.6553, 72.4304, 73.0958, 73.7535, 74.4463, 75.0839, 75.7614, 76.4348, 77.0945, 77.7642, 78.4284, 79.0724, 79.7529, 80.4232, 81.096, 81.7583, 82.4305, 83.0966, 86.4539, 87.1121, 87.7784, 88.4569, 89.1142, 89.7721, 90.439, 91.1163, 91.7888, 92.4429, 93.1039, 93.7746, 94.4353, 95.1154, 95.7794, 96.4309, 101.8857, 102.2313, 104.2374, 107.5294, 108.1962, 108.5367, 109.1984, 109.523, 113.1571, 113.4912, 113.8394, 114.1686, 118.7909, 119.135, 119.4706, 120.116, 120.4532], "client": [8.2583, 8.7799, 9.3469, 9.9405, 10.4895, 13.8721, 14.5569, 15.2748, 15.9512, 16.6643, 17.3578, 18.0457, 18.779, 19.4597, 20.1867, 20.8759, 21.5902, 22.2811, 22.9675, 23.6727, 24.378, 25.0676, 31.3813, 32.3882, 32.7183, 33.0538, 36.8599, 37.9241, 38.1991, 38.5186, 38.764, 42.3528, 43.0368, 44.6953, 49.5299, 50.1998, 50.8789, 51.5421, 52.1964, 52.8523, 53.5047, 54.1715, 54.8501, 55.5146, 56.1693, 56.8508, 57.549, 58.2716, 59.0039, 59.7796, 60.56, 61.3539, 62.1804, 63.0139, 63.867, 64.7303, 65.6064, 66.4893, 72.4264, 73.7711, 75.109, 76.4541, 77.7422, 79.0542, 80.3926, 81.7453, 83.1016, 104.6264, 104.8919, 106.4571, 110.1668, 110.8391, 111.2225, 111.8495, 112.1608, 115.9091, 116.2467, 116.503, 116.8664, 121.469, 121.7905, 122.0969, 122.8265, 123.1272]}, "methods": {"blind": {"therapist": [12.0744, 14.3151, 14.5183, 14.9711, 15.1975, 15.6502, 15.8534, 16.3062, 16.5326, 16.9912, 17.2002, 17.653, 17.862, 18.3147, 18.5179, 18.9707, 19.1971, 19.6499, 19.8763, 20.5497, 21.1882, 21.8616, 22.5234, 23.1851, 23.6437, 23.8527, 24.3055, 24.5377, 24.9963, 26.5985, 28.4967, 28.9553, 29.4951, 29.826, 29.9595, 30.1569, 30.6097, 34.1217, 34.5745, 35.4511, 35.782, 36.1244, 36.4553, 39.7526, 40.2054, 40.4317, 40.8903, 42.092, 45.9987, 47.3049, 49.9984, 50.6659, 51.3335, 52.0011, 52.6629, 53.3362, 54.0212, 54.2766, 54.7236, 54.979, 55.7221, 56.4825, 57.2604, 57.719, 58.0731, 58.5259, 58.8858, 59.3386, 59.7101, 60.1629, 61.022, 61.887, 62.3224, 62.7751, 63.2163, 63.6749, 64.1045, 64.5631, 64.9927, 65.4512, 65.8692, 66.322, 66.7574, 67.2102, 67.6688, 68.1215, 68.9284, 70.6061, 72.899, 73.108, 74.2226, 74.4548, 74.9134, 75.5461, 75.7725, 76.2253, 76.9045, 77.1077, 77.5605, 78.228, 78.437, 79.5341, 79.7663, 80.2133, 80.8867, 81.1073, 81.5659, 82.2335, 82.4424, 82.8952, 83.5628, 86.4653, 86.9239, 87.1213, 87.7946, 89.1356, 89.7858, 90.4533, 90.9061, 91.1267, 91.5853, 91.8001, 92.2529, 92.4561, 93.1178, 93.5706, 93.7854, 94.244, 94.4472, 94.9058, 95.1263, 95.5791, 95.7881, 96.2525, 96.4441, 96.9027, 100.0083, 101.895, 102.2433, 102.6961, 104.246, 107.5374, 107.996, 108.205, 108.5475, 109.0003, 109.2093, 109.5343, 109.6795, 109.9871, 113.1683, 113.5049, 113.8532, 114.1783, 118.7991, 119.1474, 119.2693, 119.4783, 119.9369, 120.1284, 120.4651, 120.9179], "client": [11.8306, 12.2253, 12.6142, 12.7478, 12.9451, 13.8623, 14.5763, 15.2903, 15.9637, 16.6777, 17.3743, 18.0593, 18.7966, 19.4757, 20.2014, 20.3291, 20.8922, 21.6062, 22.297, 22.982, 23.6902, 24.3926, 25.0834, 25.7974, 27.0745, 27.5795, 31.3934, 32.4034, 32.7343, 33.0652, 36.8733, 37.9356, 38.2142, 38.5335, 38.7831, 42.2719, 43.0498, 44.71, 45.1222, 48.3439, 49.5398, 50.2073, 50.8807, 51.5483, 52.2101, 52.866, 53.522, 54.1838, 54.8629, 55.5305, 56.1749, 56.8657, 57.5623, 58.2879, 59.0193, 59.7972, 60.5693, 61.3703, 61.44, 62.1946, 63.0306, 63.8781, 64.743, 65.6196, 66.502, 69.3522, 69.6366, 70.728, 70.937, 71.2853, 72.4405, 73.764, 75.0933, 76.4459, 77.7578, 78.6808, 79.0698, 80.4049, 81.7575, 83.11, 84.3755, 85.0315, 85.3391, 85.5423, 97.7966, 99.2073, 100.4902, 100.9894, 104.6407, 104.9078, 106.4693, 110.1787, 110.8521, 111.2352, 111.8621, 112.1756, 115.9256, 116.2623, 116.5177, 116.8834, 121.481, 121.8061, 122.1137, 122.8394, 123.1412, 125.0453, 125.8522, 126.2875, 126.3688, 126.7171], "f1_therapist": 0.6264150943396226, "f1_client": 0.8253968253968254, "exercises": [{"kind": "steady", "behaviour": "drift", "start": 11.813741496598642, "end": 25.18326530612245, "true_async": 20.457588577121427, "est_async": 105.65079365079332, "true_insync": 0.125, "est_insync": 0.05}, {"kind": "call_response", "behaviour": null, "start": 25.783265306122452, "end": 45.38154195011338, "true_async": 851.619260296851, "est_async": 422.79667422524795, "true_insync": 0.0, "est_insync": 0.0}, {"kind": "tempo", "behaviour": null, "start": 47.29174603174604, "end": 68.31224489795916, "true_async": -42.96345851362915, "est_async": 152.7873015873027, "true_insync": 0.2916666666666667, "est_insync": 0.0}, {"kind": "steady", "behaviour": "half", "start": 68.91224489795916, "end": 83.76022675736958, "true_async": -2.318723139459343, "est_async": 308.6318972033245, "true_insync": 1.0, "est_insync": 0.0}, {"kind": "vocal", "behaviour": null, "start": 84.36022675736957, "end": 97.11278911564622, "true_async": NaN, "est_async": NaN, "true_insync": NaN, "est_insync": NaN}, {"kind": "call_response", "behaviour": null, "start": 99.1943310657596, "end": 124.42594104308384, "true_async": 1217.3693882263185, "est_async": 763.6785084404115, "true_insync": 0.0, "est_insync": 0.0}]}, "calibrated": {"therapist": [13.8565, 14.5125, 15.1917, 15.8476, 16.5326, 17.1944, 17.8561, 18.5121, 19.1913, 19.8705, 20.5439, 21.1824, 21.8558, 22.5234, 23.1793, 23.8469, 24.5319, 28.4909, 29.4893, 29.8202, 30.1511, 34.1217, 35.4453, 35.782, 36.1186, 36.4495, 39.7468, 40.4259, 42.092, 45.1222, 49.534, 50.2073, 50.8749, 51.5425, 52.2043, 52.8718, 53.5684, 54.265, 54.9732, 55.7163, 56.4767, 57.2604, 58.0673, 58.88, 59.7043, 60.5634, 61.4342, 62.3166, 63.2105, 64.0987, 64.9868, 65.8634, 66.7516, 67.6629, 72.4346, 73.1022, 73.7582, 74.4548, 75.0875, 75.7667, 76.4401, 77.1019, 77.7694, 78.437, 78.6808, 79.0814, 79.7605, 80.4339, 81.1015, 81.7633, 82.4366, 83.1042, 86.4595, 87.1213, 87.783, 88.4622, 89.124, 89.78, 90.4475, 91.1209, 91.7943, 92.4502, 93.112, 93.7796, 94.4414, 95.1205, 95.7881, 96.4383, 101.8892, 102.2375, 104.246, 107.5374, 108.1992, 108.5417, 109.2034, 109.5343, 113.1624, 113.4991, 113.8474, 114.1783, 118.7991, 119.1416, 119.4783, 120.1226, 120.4593], "client": [13.8855, 14.5647, 15.2845, 15.9637, 16.6719, 17.3685, 18.0535, 18.7907, 19.4699, 20.1956, 20.8863, 21.6004, 22.2912, 22.9761, 23.6844, 24.3868, 25.0776, 31.3934, 32.3976, 32.7285, 33.0652, 36.8675, 37.9356, 38.2084, 38.5277, 38.7773, 42.3648, 43.044, 44.7042, 49.5456, 50.2132, 50.8923, 51.5541, 52.2101, 52.8602, 53.5162, 54.1838, 54.8629, 55.5247, 56.1807, 56.8599, 57.5565, 58.2821, 59.0135, 59.7914, 60.5693, 61.3645, 62.1888, 63.0248, 63.8781, 64.743, 65.6138, 66.4961, 72.4405, 73.7814, 75.1224, 76.4691, 77.752, 79.0639, 80.4049, 81.7575, 83.1158, 104.6349, 104.902, 106.4693, 110.1787, 110.8463, 111.2352, 111.8621, 112.1698, 115.9198, 116.2565, 116.5119, 116.8776, 121.481, 121.8003, 122.1079, 122.8394, 123.1354], "f1_therapist": 0.9903846153846153, "f1_client": 1.0, "exercises": [{"kind": "steady", "behaviour": "drift", "start": 11.813741496598642, "end": 25.18326530612245, "true_async": 20.457588577121427, "est_async": 24.30839002267504, "true_insync": 0.125, "est_insync": 0.0625}, {"kind": "call_response", "behaviour": null, "start": 25.783265306122452, "end": 45.38154195011338, "true_async": 851.619260296851, "est_async": 658.8662131519291, "true_insync": 0.0, "est_insync": 0.0}, {"kind": "tempo", "behaviour": null, "start": 47.29174603174604, "end": 68.31224489795916, "true_async": -42.96345851362915, "est_async": -38.45804988662109, "true_insync": 0.2916666666666667, "est_insync": 0.2916666666666667}, {"kind": "steady", "behaviour": "half", "start": 68.91224489795916, "end": 83.76022675736958, "true_async": -2.318723139459343, "est_async": 3.8699924414215854, "true_insync": 1.0, "est_insync": 1.0}, {"kind": "vocal", "behaviour": null, "start": 84.36022675736957, "end": 97.11278911564622, "true_async": NaN, "est_async": NaN, "true_insync": NaN, "est_insync": NaN}, {"kind": "call_response", "behaviour": null, "start": 99.1943310657596, "end": 124.42594104308384, "true_async": 1217.3693882263185, "est_async": 1217.3890508584414, "true_insync": 0.0, "est_insync": 0.0}]}}, "speech": [{"start": 0.8, "end": 4.31374149659864, "text": "First, tap your drum five times on your own."}, {"start": 11.813741496598642, "end": 13.449931972789118, "text": "Keep the beat with me."}, {"start": 25.783265306122452, "end": 28.081541950113383, "text": "I play, then you copy me."}, {"start": 45.98154195011338, "end": 46.89174603174604, "text": "Nice!"}, {"start": 47.29174603174604, "end": 49.13446712018141, "text": "Now let's slow down."}, {"start": 68.91224489795916, "end": 72.02689342403625, "text": "Let's play together. Ready, go."}, {"start": 84.36022675736957, "end": 86.04612244897955, "text": "Can you sing ah with me?"}, {"start": 97.71278911564622, "end": 98.7943310657596, "text": "Well done."}, {"start": 99.1943310657596, "end": 101.49260770975053, "text": "I play, then you copy me."}, {"start": 125.02594104308383, "end": 127.343492063492, "text": "That's the end. Thank you!"}], "script": ["00:00.80  THERAPIST says: \"First, tap your drum five times on your own.\"", "00:04.71  THERAPIST taps alone 5 times (calibration)", "00:08.26  CLIENT taps alone 5 times (calibration)", "00:11.81  STEADY BEAT, 17 beats at 90 bpm. Client: drift", "00:11.81  THERAPIST says: \"Keep the beat with me.\"", "00:25.78  THERAPIST says: \"I play, then you copy me.\"", "00:28.48  CALL: therapist plays 4 hits at beats 0.0, 1.5, 2.0, 2.5; client response: late start", "00:34.11  CALL: therapist plays 5 hits at beats 0.0, 2.0, 2.5, 3.0, 3.5; client response: rushed", "00:39.75  CALL: therapist plays 3 hits at beats 0.0, 1.0, 3.5; client response: copy", "00:45.98  THERAPIST says: \"Nice!\"", "00:47.29  TEMPO CHANGE x0.75 over 12 beats; client follows 5 beats behind", "00:47.29  THERAPIST says: \"Now let's slow down.\"", "01:08.91  STEADY BEAT, 17 beats at 90 bpm. Client: half", "01:08.91  THERAPIST says: \"Let's play together. Ready, go.\"", "01:24.36  THERAPIST says: \"Can you sing ah with me?\"", "01:26.45  SINGING: therapist sings aah over a soft beat; client joins in", "01:37.71  THERAPIST says: \"Well done.\"", "01:39.19  THERAPIST says: \"I play, then you copy me.\"", "01:41.89  CALL: therapist plays 3 hits at beats 0.0, 0.5, 3.5; client response: rushed", "01:47.53  CALL: therapist plays 5 hits at beats 0.0, 1.0, 1.5, 2.5, 3.0; client response: copy", "01:53.16  CALL: therapist plays 4 hits at beats 0.0, 0.5, 1.0, 1.5; client response: copy", "01:58.79  CALL: therapist plays 5 hits at beats 0.0, 0.5, 1.0, 2.0, 2.5; client response: copy", "02:05.03  THERAPIST says: \"That's the end. Thank you!\""]};
+const R = {"clients":[{"instruments":{"therapist":"frame_drum","client":"tambourine"},"bpm":110.0,"favourite":"Old MacDonald","weeks":[{"duration":112.25567648509077,"ex":[{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":2,"share":0.926,"insync":0.28,"leader":"client"},{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":2}],"score_est":0.36574074074074076,"score_true":0.36574074074074076},{"duration":108.49434307366272,"ex":[{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":6,"share":0.76,"insync":0.631578947368421,"leader":"therapist"},{"kind":"free_play","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":2},{"kind":"steady","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null}],"score_est":0.345,"score_true":0.345},{"duration":112.39635698869178,"ex":[{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":4,"share":0.857,"insync":0.5833333333333334,"leader":"mutual"},{"kind":"call_response","answered":1},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":2,"share":0.929,"insync":0.6923076923076923,"leader":"client"},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":4,"share":0.619,"insync":0.7692307692307693,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":3,"share":0.864,"insync":0.8947368421052632,"leader":null}],"score_est":0.5335497835497836,"score_true":0.5375180375180375},{"duration":106.62043299767069,"ex":[{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":6,"share":0.565,"insync":0.6923076923076923,"leader":"therapist"},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":5,"share":0.815,"insync":0.7727272727272727,"leader":"therapist"},{"kind":"call_response","answered":1},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":6,"share":0.5,"insync":0.7272727272727273,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null}],"score_est":0.3600040257648953,"score_true":0.3600040257648953},{"duration":105.97506606085447,"ex":[{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":4,"share":0.167,"insync":0.75,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":4,"share":0.84,"insync":0.7142857142857143,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.714,"insync":0.4,"leader":"mutual"},{"kind":"call_response","answered":3}],"score_est":0.5901190476190477,"score_true":0.5901190476190477},{"duration":104.2487814463492,"ex":[{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":2,"share":0.905,"insync":0.7894736842105263,"leader":"therapist"},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":3,"share":0.88,"insync":0.9545454545454546,"leader":null},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":6,"share":0.714,"insync":0.8,"leader":"client"},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":2,"share":0.667,"insync":0.9285714285714286,"leader":null},{"kind":"call_response","answered":2}],"score_est":0.6457142857142857,"score_true":0.6457142857142857},{"duration":105.48355118886839,"ex":[{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":4,"share":0.818,"insync":0.7777777777777778,"leader":"therapist"},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":4},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":5,"share":0.45,"insync":1.0,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":2,"share":0.5,"insync":0.45454545454545453,"leader":"client"}],"score_est":0.7210227272727273,"score_true":0.7210227272727273},{"duration":106.90091013522267,"ex":[{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":1,"share":0.5,"insync":1.0,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":3,"share":0.88,"insync":0.5,"leader":"mutual"},{"kind":"call_response","answered":2},{"kind":"free_play","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":1,"share":0.565,"insync":0.9230769230769231,"leader":null}],"score_est":0.49315217391304345,"score_true":0.49315217391304345}]},{"instruments":{"therapist":"frame_drum","client":"hand_drum"},"bpm":72.0,"favourite":"Row Your Boat","weeks":[{"duration":144.2090025802624,"ex":[{"kind":"free_play","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":5,"share":0.821,"insync":0.5652173913043478,"leader":null},{"kind":"call_response","answered":3},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":2,"share":0.905,"insync":0.5263157894736842,"leader":null}],"score_est":0.5907738095238095,"score_true":0.5907738095238095},{"duration":142.96760160021933,"ex":[{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":6,"share":0.7,"insync":0.42857142857142855,"leader":"therapist"},{"kind":"call_response","answered":4},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":5,"share":0.476,"insync":0.4,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":3,"share":0.889,"insync":0.5833333333333334,"leader":null},{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":5,"share":0.8,"insync":0.3,"leader":"client"}],"score_est":0.8581349206349206,"score_true":0.8581349206349206},{"duration":143.1839453265921,"ex":[{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":4,"share":0.238,"insync":0.6,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":6,"share":0.318,"insync":0.5714285714285714,"leader":null},{"kind":"call_response","answered":1},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":2,"share":0.92,"insync":0.6956521739130435,"leader":"therapist"},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.769,"insync":0.35,"leader":"client"}],"score_est":0.4056884781884782,"score_true":0.4056884781884782},{"duration":150.14460059565204,"ex":[{"kind":"call_response","answered":2},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":4,"share":0.222,"insync":1.0,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":4,"share":0.417,"insync":0.8,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":0,"share":1.0,"insync":0.625,"leader":"mutual"},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":5,"share":0.64,"insync":0.5625,"leader":null}],"score_est":0.5348611111111111,"score_true":0.5348611111111111},{"duration":148.82771532766364,"ex":[{"kind":"steady","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.769,"insync":0.9,"leader":null},{"kind":"call_response","answered":3},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":2,"share":0.909,"insync":0.55,"leader":"mutual"},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":3,"share":0.893,"insync":0.64,"leader":"client"}],"score_est":0.6963973526473526,"score_true":0.6963973526473526},{"duration":133.96063644531765,"ex":[{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":4,"share":0.8,"insync":0.3125,"leader":"client"},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":1,"share":0.95,"insync":0.631578947368421,"leader":"therapist"},{"kind":"call_response","answered":2}],"score_est":0.46875,"score_true":0.46875},{"duration":141.49713419065407,"ex":[{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":3,"share":0.696,"insync":0.0625,"leader":"therapist"},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":5,"share":0.783,"insync":0.7222222222222222,"leader":"client"},{"kind":"steady","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":2}],"score_est":0.43478260869565216,"score_true":0.43478260869565216},{"duration":143.84068875340472,"ex":[{"kind":"steady","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":3,"share":0.381,"insync":1.0,"leader":null},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":3,"share":0.308,"insync":0.75,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.037,"insync":0.0,"leader":null},{"kind":"call_response","answered":3}],"score_est":0.4657102157102157,"score_true":0.4610805860805861}]},{"instruments":{"therapist":"djembe","client":"tambourine"},"bpm":110.0,"favourite":"Old MacDonald","weeks":[{"duration":109.89470031335622,"ex":[{"kind":"call_response","answered":1},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":1,"share":0.933,"insync":0.3333333333333333,"leader":null},{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":2,"share":0.375,"insync":0.3333333333333333,"leader":null},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":0,"share":0.875,"insync":0.26666666666666666,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":0,"share":0.786,"insync":0.3076923076923077,"leader":null}],"score_est":0.4961309523809524,"score_true":0.4432286634460547},{"duration":110.15240690107069,"ex":[{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":4,"share":0.81,"insync":0.631578947368421,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":3,"share":0.833,"insync":0.55,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":4,"share":0.353,"insync":0.4444444444444444,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":0.0,"leader":null},{"kind":"call_response","answered":2}],"score_est":0.4994747899159664,"score_true":0.4947742474916388},{"duration":106.99591589482564,"ex":[{"kind":"steady","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":0.0,"leader":null},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":4,"share":0.444,"insync":0.3,"leader":null},{"kind":"call_response","answered":2},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":1,"share":0.933,"insync":0.3888888888888889,"leader":null},{"kind":"free_play","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":0.0,"leader":null}],"score_est":0.4222222222222222,"score_true":0.4125874125874126},{"duration":107.58680629447409,"ex":[{"kind":"steady","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.333,"insync":1.0,"leader":null},{"kind":"call_response","answered":2},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":0,"share":0.429,"insync":1.0,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":3,"share":0.444,"insync":1.0,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":0,"share":1.0,"insync":0.23809523809523808,"leader":null}],"score_est":0.5257936507936508,"score_true":0.3697916666666667},{"duration":108.36579508962892,"ex":[{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":0,"share":0.6,"insync":0.45454545454545453,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":1,"share":0.286,"insync":1.0,"leader":null},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":1,"share":0.9,"insync":0.4666666666666667,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":1,"share":0.786,"insync":0.7142857142857143,"leader":"therapist"},{"kind":"call_response","answered":3}],"score_est":0.6964285714285714,"score_true":0.6376509661835749},{"duration":109.74145842566168,"ex":[{"kind":"free_play","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.2,"insync":1.0,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":5,"share":0.533,"insync":1.0,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.143,"insync":1.0,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":0,"share":0.588,"insync":0.7272727272727273,"leader":null},{"kind":"call_response","answered":3}],"score_est":0.5580532212885154,"score_true":0.4406354515050167},{"duration":111.45764244672444,"ex":[{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":1,"share":0.952,"insync":0.95,"leader":null},{"kind":"call_response","answered":3},{"kind":"free_play","song":"Row Your Boat","joined":true,"join_beat":2,"share":0.593,"insync":0.6875,"leader":"mutual"},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":1,"share":0.958,"insync":0.7916666666666666,"leader":"therapist"},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":1,"share":0.577,"insync":0.8,"leader":null}],"score_est":0.7600287444037443,"score_true":0.7370634920634921},{"duration":108.63595864240747,"ex":[{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":4,"share":0.353,"insync":0.8571428571428571,"leader":null},{"kind":"call_response","answered":3},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":1,"share":0.682,"insync":0.5333333333333333,"leader":"client"},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":0,"share":0.923,"insync":0.5625,"leader":null},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":1,"share":0.909,"insync":0.6153846153846154,"leader":null}],"score_est":0.7333658988070753,"score_true":0.7415178571428571}]},{"instruments":{"therapist":"frame_drum","client":"tambourine"},"bpm":90.0,"favourite":"Happy and You Know It","weeks":[{"duration":124.47245698124466,"ex":[{"kind":"call_response","answered":0},{"kind":"steady","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":3,"share":0.87,"insync":0.45,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.464,"insync":0.6153846153846154,"leader":"client"}],"score_est":0.16673136645962733,"score_true":0.16673136645962733},{"duration":122.96263811034872,"ex":[{"kind":"call_response","answered":2},{"kind":"free_play","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":2,"share":0.391,"insync":0.5555555555555556,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null}],"score_est":0.29891304347826086,"score_true":0.29891304347826086},{"duration":126.4711926122051,"ex":[{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":6,"share":0.192,"insync":0.8,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":2,"share":0.407,"insync":0.9090909090909091,"leader":"client"},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":2}],"score_est":0.3249643874643875,"score_true":0.3249643874643875},{"duration":125.9527755006392,"ex":[{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.577,"insync":0.7333333333333333,"leader":"therapist"},{"kind":"steady","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":3},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":4,"share":0.84,"insync":0.23809523809523808,"leader":null}],"score_est":0.5521153846153846,"score_true":0.5521153846153846},{"duration":120.16902989755317,"ex":[{"kind":"free_play","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Old MacDonald","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":2}],"score_est":0.25,"score_true":0.25},{"duration":125.36789836248354,"ex":[{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":2,"share":0.926,"insync":0.8,"leader":"therapist"},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":6,"share":0.565,"insync":0.6923076923076923,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.769,"insync":0.75,"leader":null},{"kind":"call_response","answered":3},{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":1,"share":0.957,"insync":0.7727272727272727,"leader":"mutual"}],"score_est":0.7771119781989347,"score_true":0.7771119781989347},{"duration":114.84251502430874,"ex":[{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":0,"share":0.619,"insync":0.38461538461538464,"leader":"client"},{"kind":"steady","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":0,"share":1.0,"insync":0.7619047619047619,"leader":"client"},{"kind":"call_response","answered":3}],"score_est":0.5773809523809523,"score_true":0.5773809523809523},{"duration":119.1795920792788,"ex":[{"kind":"call_response","answered":3},{"kind":"free_play","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":0,"share":0.65,"insync":0.46153846153846156,"leader":"therapist"},{"kind":"steady","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null}],"score_est":0.45625,"score_true":0.45625}]},{"instruments":{"therapist":"frame_drum","client":"hand_drum"},"bpm":90.0,"favourite":"Row Your Boat","weeks":[{"duration":121.04275466214162,"ex":[{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":3,"share":0.107,"insync":0.6666666666666666,"leader":null},{"kind":"steady","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.05,"insync":1.0,"leader":null},{"kind":"call_response","answered":3},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":6,"share":0.167,"insync":0.4,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.05,"insync":0.0,"leader":null}],"score_est":0.4217261904761905,"score_true":0.375},{"duration":123.09529983773858,"ex":[{"kind":"steady","song":"Wheels on the Bus","joined":false,"join_beat":null,"share":0.04,"insync":1.0,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":true,"join_beat":3,"share":0.5,"insync":0.5833333333333334,"leader":"client"},{"kind":"call_response","answered":2},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":2,"share":0.2,"insync":0.25,"leader":null},{"kind":"free_play","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null}],"score_est":0.3425,"score_true":0.33229166666666665},{"duration":118.85258665108117,"ex":[{"kind":"call_response","answered":3},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":0,"share":0.88,"insync":0.6956521739130435,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":5,"share":0.286,"insync":0.0,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.087,"insync":0.0,"leader":null},{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":1,"share":0.2,"insync":0.0,"leader":null}],"score_est":0.556583850931677,"score_true":0.475},{"duration":121.81560168884462,"ex":[{"kind":"free_play","song":"Old MacDonald","joined":true,"join_beat":2,"share":0.286,"insync":1.0,"leader":null},{"kind":"steady","song":"Happy and You Know It","joined":true,"join_beat":3,"share":0.864,"insync":0.5789473684210527,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"call_response","answered":3}],"score_est":0.5186688311688312,"score_true":0.5186688311688312},{"duration":121.83685733482343,"ex":[{"kind":"free_play","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":2,"share":0.92,"insync":0.6956521739130435,"leader":"therapist"},{"kind":"call_response","answered":2},{"kind":"steady","song":"Old MacDonald","joined":true,"join_beat":0,"share":1.0,"insync":0.34782608695652173,"leader":null},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":6,"share":0.7,"insync":0.6428571428571429,"leader":null}],"score_est":0.5775,"score_true":0.5778846153846153},{"duration":118.18909861880792,"ex":[{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":4,"share":0.318,"insync":0.8571428571428571,"leader":null},{"kind":"call_response","answered":3},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":1,"share":0.952,"insync":0.65,"leader":null},{"kind":"free_play","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null}],"score_est":0.5338203463203464,"score_true":0.5338203463203464},{"duration":125.22841548147653,"ex":[{"kind":"call_response","answered":4},{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":0,"share":0.808,"insync":0.0,"leader":null},{"kind":"free_play","song":"Wheels on the Bus","joined":true,"join_beat":0,"share":0.846,"insync":0.0,"leader":"therapist"},{"kind":"free_play","song":"Happy and You Know It","joined":true,"join_beat":0,"share":1.0,"insync":0.4,"leader":"therapist"},{"kind":"steady","song":"Twinkle Twinkle","joined":true,"join_beat":0,"share":0.905,"insync":0.0,"leader":null}],"score_est":0.9448260073260073,"score_true":0.3489583333333333},{"duration":122.44646451721472,"ex":[{"kind":"steady","song":"Row Your Boat","joined":true,"join_beat":1,"share":0.964,"insync":0.4444444444444444,"leader":null},{"kind":"call_response","answered":3},{"kind":"free_play","song":"Twinkle Twinkle","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"free_play","song":"Happy and You Know It","joined":false,"join_beat":null,"share":0.0,"insync":null,"leader":null},{"kind":"steady","song":"Wheels on the Bus","joined":true,"join_beat":0,"share":1.0,"insync":0.9523809523809523,"leader":null}],"score_est":0.6205357142857143,"score_true":0.6205357142857143}]}],"songs":["Twinkle Twinkle","Row Your Boat","Old MacDonald","Happy and You Know It","Wheels on the Bus"],"leader":{"therapist":[10,1.0],"client":[16,0.8125],"mutual":[12,0.3333333333333333],"all":[38,0.7105263157894737]},"songCurve":{"weeks":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],"top1":[0.32666666666666666,0.36,0.4066666666666667,0.41333333333333333,0.4766666666666667,0.45666666666666667,0.5166666666666667,0.57,0.61,0.62,0.6766666666666666,0.7133333333333334,0.74,0.7533333333333333,0.75,0.7833333333333333],"top2":[0.52,0.5666666666666667,0.6266666666666667,0.6466666666666666,0.7066666666666667,0.7533333333333333,0.7966666666666666,0.8166666666666667,0.8366666666666667,0.83,0.8533333333333334,0.86,0.89,0.91,0.9166666666666666,0.9366666666666666],"clients":300,"chance_top1":0.2,"chance_top2":0.4}};
+const $ = (s) => document.querySelector(s);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------------- marquee */
+(() => {
+  const words = ["Rhythm", "Synchrony", "One phone", "Two players", "3–4 ms", "Calibrate", "Call & response", "Music therapy"];
+  const t = $("#track"); const html = words.map((w) => `<span>${w}</span><span>✦</span>`).join("");
+  t.innerHTML = html + html;
+})();
+
+/* ---------------- audio (loaded as a blob so seeking works anywhere) */
+const audio = new Audio(); audio.preload = "auto";
+fetch("session.mp3").then((r) => r.blob()).then((b) => { audio.src = URL.createObjectURL(b); }).catch(() => {});
+const allHits = [...D.truth.therapist.map((t) => [t, 0]), ...D.truth.client.map((t) => [t, 1])].sort((a, b) => a[0] - b[0]);
+let pulse = 0, lastT = 0;
+function hitPulse() { // fires the blob pulse when the playhead crosses a true hit
+  const t = audio.currentTime;
+  if (!audio.paused && t > lastT) for (const [h, who] of allHits) { if (h > lastT && h <= t) pulse = Math.min(1.4, pulse + (who ? .45 : .8)); }
+  lastT = t;
+}
+
+/* ---------------- hero: chrome blob in three.js */
+function bootBlob() {
+  const canvas = $("#blob");
+  if (!window.THREE) return;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100); camera.position.set(0, 0, 7);
+  // holographic environment painted on a canvas
+  const ec = document.createElement("canvas"); ec.width = 1024; ec.height = 512; const g = ec.getContext("2d");
+  const grad = g.createLinearGradient(0, 0, 1024, 0);
+  ["#ffffff", "#9fd8ff", "#c8a8ff", "#ff9ccf", "#fff0a8", "#9fffd6", "#8ab4ff", "#ffffff"].forEach((c, i, a) => grad.addColorStop(i / (a.length - 1), c));
+  g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
+  const v = g.createLinearGradient(0, 0, 0, 512); v.addColorStop(0, "rgba(255,255,255,.95)"); v.addColorStop(.48, "rgba(255,255,255,0)"); v.addColorStop(.52, "rgba(10,12,30,.85)"); v.addColorStop(1, "rgba(30,40,120,.6)");
+  g.fillStyle = v; g.fillRect(0, 0, 1024, 512);
+  for (let i = 0; i < 14; i++) { g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(Math.random() * 1024, 60 + Math.random() * 160, 40 + Math.random() * 160, 6 + Math.random() * 14); }
+  const env = new THREE.CanvasTexture(ec); env.mapping = THREE.EquirectangularReflectionMapping; env.encoding = THREE.sRGBEncoding;
+  const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(env).texture;
+  const geo = new THREE.SphereGeometry(1.5, 112, 80); // indexed, so normals stay smooth
+  const base = geo.attributes.position.array.slice();
+  const mat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.05 });
+  const mesh = new THREE.Mesh(geo, mat); scene.add(mesh);
+  // small orbiting chrome droplets
+  const drops = [0, 1, 2].map((i) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.16 + i * 0.05, 32, 32), mat); scene.add(m); return m; });
+  // ring (like the poster's orbit line)
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.012, 8, 160), new THREE.MeshBasicMaterial({ color: 0xff6fa8 }));
+  ring.rotation.set(1.25, 0.2, 0); scene.add(ring);
+  // 3D value noise, cheap
+  const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
+  const sm = (t) => t * t * (3 - 2 * t);
+  function noise(x, y, z) { const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = sm(x - xi), yf = sm(y - yi), zf = sm(z - zi); let r = 0;
+    for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) for (let c = 0; c < 2; c++) r += hash(xi + a, yi + b, zi + c) * (a ? xf : 1 - xf) * (b ? yf : 1 - yf) * (c ? zf : 1 - zf); return r; }
+  let mx = 0, my = 0; addEventListener("pointermove", (e) => { mx = e.clientX / innerWidth - .5; my = e.clientY / innerHeight - .5; });
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    const narrow = w < 700; mesh.position.set(narrow ? 0.5 : 1.9, narrow ? 1.25 : 0.35, 0); mesh.scale.setScalar(narrow ? 0.62 : 0.82); ring.position.copy(mesh.position); }
+  resize(); addEventListener("resize", resize);
+  const pos = geo.attributes.position; let visible = true;
+  new IntersectionObserver(([e]) => visible = e.isIntersecting).observe(canvas);
+  function frame(ms) {
+    requestAnimationFrame(frame);
+    if (!visible) return;
+    const t = reduce ? 0 : ms / 1000;
+    const sc = Math.min(1, scrollY / innerHeight);
+    pulse *= 0.9;
+    const amp = 0.28 + pulse * 0.35 + sc * 0.4;
+    for (let i = 0; i < pos.count; i++) {
+      const x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2];
+      const n = noise(x * .9 + t * .35, y * .9 + t * .25, z * .9 - t * .3);
+      const k = 1 + (n - .5) * amp * 2 + Math.max(0, x * .18) * Math.sin(t * .8); // a soft star-like pull to one side
+      pos.array[i * 3] = x * k; pos.array[i * 3 + 1] = y * k; pos.array[i * 3 + 2] = z * k;
+    }
+    pos.needsUpdate = true; geo.computeVertexNormals();
+    mesh.rotation.y = t * .25 + mx * .6 + sc * 2; mesh.rotation.x = my * .4 + sc * .8;
+    drops.forEach((d, i) => { const a = t * (0.6 + i * .25) + i * 2.1; d.position.set(mesh.position.x + Math.cos(a) * 2.5, mesh.position.y + Math.sin(a * 1.3) * .5, Math.sin(a) * 2.5 * .4); });
+    ring.rotation.z = t * .2;
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- "parna" as liquid chrome tubes (three.js), like inflated metal script */
+function liquidWord(canvas, opts = {}) {
+  if (!window.THREE) return null;
+  const T = THREE;
+  const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(22, 1, 0.1, 100); camera.position.set(0, 0, 14);
+  // studio environment: soft lilac room, a dark purple horizon, pink and blue light strips (gives the purple chrome bands)
+  const ec = document.createElement("canvas"); ec.width = 1024; ec.height = 512; const g = ec.getContext("2d");
+  const v = g.createLinearGradient(0, 0, 0, 512);
+  [[0, "#ffffff"], [.18, "#f3e6ff"], [.36, "#c8a6ff"], [.47, "#4a2a7a"], [.52, "#1c1033"], [.58, "#6a3f9e"], [.7, "#e7b8ef"], [.85, "#b9a2e8"], [1, "#fbf3ff"]].forEach(([o, c]) => v.addColorStop(o, c));
+  g.fillStyle = v; g.fillRect(0, 0, 1024, 512);
+  const strip = (x, w, col) => { const h = g.createLinearGradient(x, 0, x + w, 0); h.addColorStop(0, "rgba(255,255,255,0)"); h.addColorStop(.5, col); h.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = h; g.fillRect(x, 40, w, 430); };
+  strip(120, 70, "rgba(255,255,255,.95)"); strip(330, 110, "rgba(255,150,210,.75)"); strip(560, 60, "rgba(255,255,255,.9)"); strip(700, 120, "rgba(140,170,255,.7)"); strip(900, 70, "rgba(255,210,240,.8)");
+  const env = new T.CanvasTexture(ec); env.mapping = T.EquirectangularReflectionMapping; env.encoding = T.sRGBEncoding;
+  const pm = new T.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(env).texture;
+  const mat = new T.MeshPhysicalMaterial({ color: 0xe2d2ff, metalness: 1, roughness: 0.07, clearcoat: 1, clearcoatRoughness: 0.04 });
+
+  // letter centrelines on a grid: x-height 1, descender -0.95
+  const A = [[[.78, .78], [.5, 1.02], [.12, .82], [.02, .42], [.2, .04], [.52, -.02], [.76, .3]], [[.8, 1.0], [.79, .5], [.82, .06], [.98, -.06]]];
+  const L = {
+    p: [[[.06, 1.02], [.03, .4], [.06, -.3], [.02, -.95]], [[.05, .82], [.3, 1.04], [.68, .9], [.78, .48], [.58, .06], [.2, .04], [.06, .2]]],
+    a: A,
+    r: [[[.04, 1.0], [.05, .5], [.03, 0]], [[.05, .62], [.2, .92], [.45, 1.04], [.66, .9]]],
+    n: [[[.04, 1.0], [.05, .5], [.03, 0]], [[.05, .68], [.25, 1.0], [.55, .98], [.7, .62], [.69, .25], [.74, 0]]],
+  };
+  const W = { p: .82, a: .98, r: .7, n: .8 };
+  const word = opts.word || "parna", R = .15;
+  const group = new T.Group(); scene.add(group);
+  let x0 = 0; const parts = [];
+  for (const [ci, ch] of [...word].entries()) {
+    for (const [si, stroke] of L[ch].entries()) {
+      const pts = stroke.map(([x, y], k) => new T.Vector3(x0 + x + .05 * Math.sin(y * 3.4 + ci * 1.7), y, .08 * Math.sin(k * 1.3 + ci + si)));
+      parts.push({ pts, seed: ci * 3 + si });
+    }
+    x0 += W[ch] + .2;
+  }
+  const off = x0 - .2;
+  const rad = (t, seed) => R * (0.8 + 0.28 * Math.sin(Math.PI * t) + 0.12 * Math.sin(t * 7 + seed) + 0.12 * Math.pow(1 - Math.min(t, 1 - t) * 2, 8));
+  function tube({ pts, seed }) {
+    const curve = new T.CatmullRomCurve3(pts, false, "centripetal");
+    const N = 220, S = 28, fr = curve.computeFrenetFrames(N, false), pos = [], idx = [], len = curve.getLength();
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, c = curve.getPointAt(t), re = rad(t < .5 ? 0 : 1, seed), s = Math.min(t, 1 - t) * len;
+      const r = rad(t, seed) * (s < re ? Math.sqrt(Math.max(0, 1 - (1 - s / re) ** 2)) : 1);
+      for (let j = 0; j <= S; j++) { const a = j / S * Math.PI * 2, n = fr.normals[i].clone().multiplyScalar(Math.cos(a)).add(fr.binormals[i].clone().multiplyScalar(Math.sin(a))); pos.push(c.x + n.x * r, c.y + n.y * r, c.z + n.z * r); }
+    }
+    for (let i = 0; i < N; i++) for (let j = 0; j < S; j++) { const a = i * (S + 1) + j, b = a + S + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    group.add(new T.Mesh(geo, mat));
+  }
+  parts.forEach(tube);
+  group.position.x = -off / 2; group.position.y = -.05;
+  const pivot = new T.Group(); scene.remove(group); pivot.add(group); scene.add(pivot);
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h;
+    const tn = 2 * Math.tan(camera.fov * Math.PI / 360); camera.position.z = Math.max((off + 1.0) / (tn * camera.aspect), 2.7 / tn); camera.updateProjectionMatrix(); }
+  resize(); new ResizeObserver(resize).observe(canvas);
+  let mx = 0, my = 0; addEventListener("pointermove", (e) => { mx = e.clientX / innerWidth - .5; my = e.clientY / innerHeight - .5; });
+  let vis = true; new IntersectionObserver(([e]) => vis = e.isIntersecting).observe(canvas);
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  (function frame(ms) { requestAnimationFrame(frame); if (!vis) return; const t = still ? 0 : ms / 1000;
+    pivot.rotation.y = Math.sin(t * .5) * .16 + mx * .35; pivot.rotation.x = Math.sin(t * .37) * .06 + my * .2; renderer.render(scene, camera); })(0);
+  return { resize };
+}
+
+/* "Inflate" any font into liquid chrome: draw the word, measure how deep each pixel sits inside the letters,
+   and push the surface out by that depth (a balloon-shaped height map), then light it with a chrome studio. */
+function inflateWord(canvas, { text = "parna", font = "Pacifico", size = 255, puff = 0.9, tint = 0xe2d2ff, stops = null } = {}) {
+  if (!window.THREE) return null;
+  const T = THREE, GW = 840, GH = 360;
+  const c = document.createElement("canvas"); c.width = GW; c.height = GH; const g = c.getContext("2d");
+  g.fillStyle = "#000"; g.fillRect(0, 0, GW, GH); g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
+  let fs = size; g.font = `${fs}px "${font}"`; while (g.measureText(text).width > GW * .9 && fs > 20) { fs -= 4; g.font = `${fs}px "${font}"`; }
+  g.fillText(text, GW / 2, GH / 2 + fs * .05);
+  const px = g.getImageData(0, 0, GW, GH).data, inside = new Uint8Array(GW * GH);
+  for (let i = 0; i < GW * GH; i++) inside[i] = px[i * 4] > 127;
+  // chamfer distance transform (distance to the nearest outside pixel)
+  const D = new Float32Array(GW * GH).map((_, i) => inside[i] ? 1e9 : 0), a = 1, b = 1.414;
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const i = y * GW + x; if (!D[i]) continue; let m = D[i];
+    if (x) m = Math.min(m, D[i - 1] + a); if (y) { m = Math.min(m, D[i - GW] + a); if (x) m = Math.min(m, D[i - GW - 1] + b); if (x < GW - 1) m = Math.min(m, D[i - GW + 1] + b); } D[i] = m; }
+  for (let y = GH - 1; y >= 0; y--) for (let x = GW - 1; x >= 0; x--) { const i = y * GW + x; if (!D[i]) continue; let m = D[i];
+    if (x < GW - 1) m = Math.min(m, D[i + 1] + a); if (y < GH - 1) { m = Math.min(m, D[i + GW] + a); if (x < GW - 1) m = Math.min(m, D[i + GW + 1] + b); if (x) m = Math.min(m, D[i + GW - 1] + b); } D[i] = m; }
+  let dmax = 1; for (const v of D) if (v > dmax) dmax = v;
+  // balloon profile: round at the edges, soft on top; then a light blur so the surface is smooth
+  let H = new Float32Array(GW * GH); for (let i = 0; i < D.length; i++) H[i] = D[i] ? Math.sqrt(Math.min(1, D[i] / dmax) * (2 - Math.min(1, D[i] / dmax))) : 0;
+  // smooth the surface: separable box blur (3 passes) over the whole map, then keep only the inside
+  const box = (A, r) => { const B = new Float32Array(A.length);
+    for (let y = 0; y < GH; y++) { let acc = 0; for (let x = -r; x < GW + r; x++) { const xi = Math.min(GW - 1, Math.max(0, x)); acc += A[y * GW + xi];
+      const xo = x - 2 * r - 1; if (xo >= -r) acc -= A[y * GW + Math.min(GW - 1, Math.max(0, xo))]; const xc = x - r; if (xc >= 0 && xc < GW) B[y * GW + xc] = acc / (2 * r + 1); } }
+    const C = new Float32Array(A.length);
+    for (let x = 0; x < GW; x++) { let acc = 0; for (let y = -r; y < GH + r; y++) { const yi = Math.min(GH - 1, Math.max(0, y)); acc += B[yi * GW + x];
+      const yo = y - 2 * r - 1; if (yo >= -r) acc -= B[Math.min(GH - 1, Math.max(0, yo)) * GW + x]; const yc = y - r; if (yc >= 0 && yc < GH) C[yc * GW + x] = acc / (2 * r + 1); } }
+    return C; };
+  const rb = Math.max(2, Math.round(dmax / 3));
+  for (let pass = 0; pass < 3; pass++) H = box(H, rb);
+  let hm = 1e-6; for (let i = 0; i < H.length; i++) { if (!inside[i]) H[i] = 0; else if (H[i] > hm) hm = H[i]; }
+  for (let i = 0; i < H.length; i++) if (H[i]) { const u = Math.min(1, H[i] / hm); H[i] = Math.pow(u, .75); }
+  const sx = 6 / GW, pos = [], idx = [], map = new Int32Array(GW * GH).fill(-1);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const i = y * GW + x;
+    if (inside[i] || (x && inside[i - 1]) || (y && inside[i - GW])) { map[i] = pos.length / 3; pos.push((x - GW / 2) * sx, (GH / 2 - y) * sx, H[i] * dmax * sx * puff); } }
+  for (let y = 0; y < GH - 1; y++) for (let x = 0; x < GW - 1; x++) { const i = y * GW + x, p = [map[i], map[i + 1], map[i + GW], map[i + GW + 1]];
+    if (p.every((v) => v >= 0) && (inside[i] || inside[i + 1] || inside[i + GW] || inside[i + GW + 1])) idx.push(p[0], p[2], p[1], p[1], p[2], p[3]); }
+  const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping;
+  const scene = new T.Scene(), camera = new T.PerspectiveCamera(20, 1, .1, 100);
+  const ec = document.createElement("canvas"); ec.width = 1024; ec.height = 512; const e = ec.getContext("2d");
+  const v = e.createLinearGradient(0, 0, 0, 512);
+  (stops || [[0, "#ffffff"], [.2, "#d9c2ff"], [.3, "#2a1648"], [.37, "#7d4fc0"], [.44, "#f2c4ec"], [.5, "#fdf6ff"], [.56, "#e6c9ff"], [.63, "#8a5ad0"], [.7, "#22123c"], [.8, "#c9a8f5"], [1, "#fff6fd"]]).forEach(([o, col]) => v.addColorStop(o, col));
+  e.fillStyle = v; e.fillRect(0, 0, 1024, 512);
+  const strip = (x, w, col) => { const h = e.createLinearGradient(x, 0, x + w, 0); h.addColorStop(0, "rgba(255,255,255,0)"); h.addColorStop(.5, col); h.addColorStop(1, "rgba(255,255,255,0)"); e.fillStyle = h; e.fillRect(x, 40, w, 430); };
+  strip(120, 70, "rgba(255,255,255,.95)"); strip(330, 110, "rgba(255,150,210,.75)"); strip(560, 60, "rgba(255,255,255,.9)"); strip(700, 120, "rgba(140,170,255,.7)"); strip(900, 70, "rgba(255,210,240,.8)");
+  const env = new T.CanvasTexture(ec); env.mapping = T.EquirectangularReflectionMapping; env.encoding = T.sRGBEncoding;
+  scene.environment = new T.PMREMGenerator(renderer).fromEquirectangular(env).texture;
+  const mesh = new T.Mesh(geo, new T.MeshPhysicalMaterial({ color: tint, metalness: 1, roughness: .07, clearcoat: 1, clearcoatRoughness: .04 }));
+  const pivot = new T.Group(); pivot.add(mesh); scene.add(pivot);
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h;
+    const tn = 2 * Math.tan(camera.fov * Math.PI / 360); camera.position.z = Math.max(6.3 / (tn * camera.aspect), 2.7 / tn); camera.updateProjectionMatrix(); }
+  resize(); if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
+  let mx = 0, my = 0; addEventListener("pointermove", (ev) => { mx = ev.clientX / innerWidth - .5; my = ev.clientY / innerHeight - .5; });
+  let vis = true; new IntersectionObserver(([en]) => vis = en.isIntersecting).observe(canvas);
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  (function frame(ms) { requestAnimationFrame(frame); if (!vis) return; const t = still ? 0 : ms / 1000;
+    pivot.rotation.y = Math.sin(t * .5) * .18 + mx * .35; pivot.rotation.x = Math.sin(t * .37) * .07 + my * .2 - .05; renderer.render(scene, camera); })(0);
+  return { resize };
+}
+
+const GUNMETAL = { font: "Bagel Fat One", tint: 0x9a9eaa, stops: [[0,"#ffffff"],[.2,"#6f7585"],[.3,"#07080d"],[.37,"#3a3f4d"],[.44,"#aeb3be"],[.5,"#ffffff"],[.56,"#aeb3be"],[.63,"#3a3f4d"],[.7,"#07080d"],[.8,"#6f7585"],[1,"#ffffff"]] };
+function bootWord() { return; const wm = $("#wm"); wm.classList.add("live");
+  (document.fonts ? document.fonts.load('100px "Bagel Fat One"') : Promise.resolve()).catch(() => {}).then(() => {
+    try { if (!inflateWord($("#word"), GUNMETAL)) wm.classList.remove("live"); } catch (e) { wm.classList.remove("live"); } }); }
+// 3D starts only once three.js is in; if the first CDN is blocked, try a second one. A failure never stops the rest of the page.
+function boot3d() { for (const f of [bootBlob, bootWord]) { try { f(); } catch (e) { $("#wm").classList.remove("live"); } } }
+if (window.THREE) boot3d();
+else { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"; s.onload = boot3d; document.head.appendChild(s); }
+
+/* ---------------- scroll: progress bar, reveals, count-ups */
+const loadbar = $("#loadbar");
+addEventListener("scroll", () => { const h = document.documentElement.scrollHeight - innerHeight; loadbar.style.transform = `scaleX(${h > 0 ? scrollY / h : 0})`; }, { passive: true });
+const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in-view"); io.unobserve(e.target); } }), { threshold: .2 });
+document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+const io2 = new IntersectionObserver((es) => es.forEach((e) => {
+  if (!e.isIntersecting || reduce) return; io2.unobserve(e.target);
+  const el = e.target, end = +el.dataset.count, pre = el.dataset.pre || "", t0 = performance.now();
+  (function tick(now) { const p = Math.min(1, (now - t0) / 1200); el.textContent = pre + Math.round(end * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(tick); })(t0);
+}), { threshold: .5 });
+document.querySelectorAll("[data-count]").forEach((el) => io2.observe(el));
+
+/* ---------------- draggable windows */
+document.querySelectorAll("[data-drag]").forEach((w) => {
+  const tb = w.querySelector(".tb"); let sx, sy, ox = 0, oy = 0, base = getComputedStyle(w).transform;
+  base = base === "none" ? "" : base;
+  tb.addEventListener("pointerdown", (e) => { tb.setPointerCapture(e.pointerId); sx = e.clientX - ox; sy = e.clientY - oy; w.classList.add("drag"); });
+  tb.addEventListener("pointermove", (e) => { if (!w.classList.contains("drag")) return; ox = e.clientX - sx; oy = e.clientY - sy; w.style.transform = `translate(${ox}px, ${oy}px) ${base}`; });
+  tb.addEventListener("pointerup", () => w.classList.remove("drag"));
+  tb.addEventListener("dblclick", () => { ox = oy = 0; w.style.transform = ""; });
+});
+
+/* ---------------- sparkles on click */
+addEventListener("pointerdown", (e) => {
+  if (reduce || e.target.closest("button, a, .tb, canvas#mini")) return;
+  for (let i = 0; i < 6; i++) { const s = document.createElement("i"); s.className = "spark"; s.style.left = e.clientX + "px"; s.style.top = e.clientY + "px";
+    const a = Math.random() * 6.28, r = 30 + Math.random() * 50; s.style.setProperty("--dx", Math.cos(a) * r + "px"); s.style.setProperty("--dy", Math.sin(a) * r + "px");
+    if (i % 2) s.style.background = "var(--pink)"; document.body.appendChild(s); setTimeout(() => s.remove(), 900); }
+});
+
+/* ---------------- canvas helper */
+function fit(c) { const dpr = Math.min(devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); } const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); return [g, w, h]; }
+const COL = { t: "#1f3fd1", c: "#ff4f8f", ink: "#0d0d12", muted: "#4a4a5c", good: "#12a36b", bad: "#ff3d5a" };
+function star(g, x, y, r, col) { g.fillStyle = col; g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .28 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); }
+
+/* ---------------- scroll story */
+(() => {
+  const sec = $("#story"), cv = $("#storyCanvas"), dots = [...document.querySelectorAll(".story .dots i")];
+  const steps = [
+    ["01", "Two players, one beat", "The therapist plays a steady beat on a frame drum. The client follows on a shaker. When the client is in time, their hits land within a few milliseconds of the therapist's."],
+    ["02", "The usual detector hears one hit", "A standard detector finds sounds in the mix, then sorts them by tone. When both players hit together it hears a single sound, so the therapist's beat vanishes at the moment the client is doing well. Its timing ends up off by 104 to 172 ms."],
+    ["03", "Calibrate, then separate", "Each player taps alone a few times. The method learns what each instrument sounds like, then splits the recording into 'how much drum' and 'how much shaker' at every moment. Overlapping hits stay separate, and timing lands within 3 to 4 ms."],
+  ];
+  let cur = -1;
+  function draw() {
+    const r = sec.getBoundingClientRect(); const total = sec.offsetHeight - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / total));
+    const s = Math.min(2, Math.floor(p * 3)); const lp = p * 3 - s; // local progress in the step
+    if (s !== cur) { cur = s; $("#stNum").textContent = steps[s][0]; $("#stTitle").textContent = steps[s][1]; $("#stText").textContent = steps[s][2]; dots.forEach((d, i) => d.classList.toggle("on", i <= s)); }
+    const [g, W, H] = fit(cv); g.clearRect(0, 0, W, H);
+    if (H < 60) return;
+    const yT = H * .3, yC = H * .62, yM = H * .46, L = 30, R = W - 20;
+    const beat = Math.max(60, (R - L) / 8);
+    const scrollX = (reduce ? 0 : performance.now() / 1000 * 40) % beat;
+    const lane = (y, label, col) => { const ly = y - 40; g.strokeStyle = "rgba(13,13,18,.2)"; g.lineWidth = 1; g.beginPath(); g.moveTo(L, y); g.lineTo(R, y); g.stroke(); g.fillStyle = col; g.font = `600 ${Math.max(11, Math.min(14, W / 60))}px "IBM Plex Mono", monospace`; g.fillText(label, L, ly); };
+    const offs = [6, -12, 22, 4, 140, -8, 10, -4, 18]; // client offsets in ms; one beat is late
+    if (s === 0) {
+      lane(yT, "THERAPIST ✦ FRAME DRUM", COL.t); lane(yC, "CLIENT ✦ SHAKER", COL.c);
+      for (let i = -1; i < 9; i++) { const x = L + i * beat + scrollX; if (x < L - 10 || x > R) continue;
+        g.fillStyle = COL.t; g.beginPath(); g.arc(x, yT, 11, 0, 7); g.fill();
+        const cx = x + offs[(i + 9) % 9] / 1000 * beat * 3; star(g, cx, yC, 14, COL.c);
+        g.strokeStyle = "rgba(13,13,18,.25)"; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(x, yT + 12); g.lineTo(cx, yC - 14); g.stroke(); g.setLineDash([]); }
+    } else if (s === 1) {
+      const m = Math.min(1, lp * 2.2); // lanes collapse into one
+      const yt = yT + (yM - yT) * m, yc = yC + (yM - yC) * m;
+      lane(yt, m > .9 ? "WHAT THE DETECTOR HEARS" : "THERAPIST", COL.t); if (m < .9) lane(yc, "CLIENT", COL.c);
+      for (let i = -1; i < 9; i++) { const x = L + i * beat + scrollX; if (x < L - 10 || x > R) continue;
+        const o = offs[(i + 9) % 9], cx = x + o / 1000 * beat * 3, merged = Math.abs(o) < 50;
+        if (m > .9) {
+          if (merged) { g.fillStyle = "#7a6bd6"; g.beginPath(); g.arc(x, yM, 15, 0, 7); g.fill(); g.strokeStyle = COL.bad; g.lineWidth = 2.5; g.beginPath(); g.moveTo(x - 9, yM + 30); g.lineTo(x + 9, yM + 48); g.moveTo(x + 9, yM + 30); g.lineTo(x - 9, yM + 48); g.stroke(); }
+          else { g.fillStyle = COL.t; g.beginPath(); g.arc(x, yM, 11, 0, 7); g.fill(); star(g, cx, yM, 14, COL.c); }
+        } else { g.fillStyle = COL.t; g.beginPath(); g.arc(x, yt, 11, 0, 7); g.fill(); star(g, cx, yc, 14, COL.c); }
+      }
+      if (m > .9) { g.fillStyle = COL.bad; g.font = `600 13px "IBM Plex Mono", monospace`; g.fillText(W < 600 ? "✕ = two hits heard as one" : "✕ = two hits heard as one, the therapist's beat is lost", L, H * .82); }
+    } else {
+      const k = Math.min(1, lp * 1.6); // calibration taps, then separation
+      if (k < .45) {
+        const q = k / .45; lane(yM, "CALIBRATION: EACH PLAYER TAPS ALONE", COL.ink);
+        for (let i = 0; i < 5; i++) { const x = L + (i + .5) * (R - L) / 10, on = q * 10 > i; g.globalAlpha = on ? 1 : .2; g.fillStyle = COL.t; g.beginPath(); g.arc(x, yM, 11, 0, 7); g.fill(); }
+        for (let i = 0; i < 5; i++) { const x = L + (i + 5.5) * (R - L) / 10, on = q * 10 > i + 5; g.globalAlpha = on ? 1 : .2; star(g, x, yM, 14, COL.c); }
+        g.globalAlpha = 1;
+      } else {
+        const m = Math.min(1, (k - .45) / .35); const yt = yM + (yT - yM) * m, yc = yM + (yC - yM) * m;
+        lane(yt, "THERAPIST, SEPARATED", COL.t); lane(yc, "CLIENT, SEPARATED", COL.c);
+        for (let i = -1; i < 9; i++) { const x = L + i * beat + scrollX; if (x < L - 10 || x > R) continue;
+          const cx = x + offs[(i + 9) % 9] / 1000 * beat * 3;
+          g.fillStyle = COL.t; g.beginPath(); g.arc(x, yt, 11, 0, 7); g.fill(); star(g, cx, yc, 14, COL.c);
+          if (m > .95) { g.fillStyle = COL.good; g.beginPath(); g.arc(x, yt - 26, 4, 0, 7); g.fill(); g.beginPath(); g.arc(cx, yc + 26, 4, 0, 7); g.fill(); } }
+        if (m > .95) { g.fillStyle = COL.good; g.font = `600 13px "IBM Plex Mono", monospace`; g.fillText(W < 600 ? "● both found, within 3–4 ms" : "● both hits found, timing within 3–4 ms", L, H * .86); }
+      }
+    }
+  }
+  let vis = false; new IntersectionObserver(([e]) => vis = e.isIntersecting).observe(sec);
+  (function loop() { if (vis) draw(); requestAnimationFrame(loop); })();
+  draw();
+})();
+
+/* ---------------- session player */
+(() => {
+  const lanes = $("#lanes"), mini = $("#mini"); let method = "calibrated";
+  const fmt = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+  const NAMES = { steady: "Steady beat", call_response: "Call and response", tempo: "Tempo change", vocal: "Singing together" };
+  const BEHAV = { sync: "client plays in time", late: "client plays late", drift: "client drifts off the tempo", catchup: "client starts late and catches up", half: "client plays every other beat", stop_start: "client stops, then comes back in" };
+  const ex = D.methods.calibrated.exercises.map((e, i) => ({ ...e, blind: D.methods.blind.exercises[i] }));
+  const script = D.script.map((l) => { const m = l.match(/^(\d+):(\d+\.\d+)\s+(.*)$/); return m ? { t: +m[1] * 60 + +m[2], text: m[3] } : null; }).filter(Boolean);
+  const t0 = D.calibration.client[1];
+  const near = (arr, t, tol = .05) => arr.some((a) => Math.abs(a - t) <= tol);
+  const ms = (v) => v == null ? "n/a" : `${Math.abs(v).toFixed(0)} ms ${v >= 0 ? "late" : "early"}`;
+  const setM = (m) => { method = m; $("#m-cal").setAttribute("aria-pressed", m === "calibrated"); $("#m-blind").setAttribute("aria-pressed", m === "blind"); };
+  $("#m-cal").onclick = () => setM("calibrated"); $("#m-blind").onclick = () => setM("blind");
+  const play = $("#play");
+  play.onclick = () => { if (audio.paused) audio.play().catch(() => {}); else audio.pause(); };
+  audio.addEventListener("play", () => { play.textContent = "❚❚"; play.setAttribute("aria-label", "Pause"); });
+  audio.addEventListener("pause", () => { play.textContent = "▶"; play.setAttribute("aria-label", "Play"); });
+  mini.addEventListener("click", (e) => { const r = mini.getBoundingClientRect(); audio.currentTime = (e.clientX - r.left) / r.width * D.duration; lastT = audio.currentTime; });
+  let lastEx;
+  function draw() {
+    const now = audio.currentTime || 0; hitPulse();
+    let [g, W, H] = fit(lanes); const span = W < 500 ? 4 : 6, x = (t) => W / 2 + (t - now) / span * W;
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = "rgba(255,111,168,.14)";
+    for (const s of D.speech) if (s.end > now - span / 2 && s.start < now + span / 2) g.fillRect(x(s.start), 0, x(s.end) - x(s.start), H);
+    g.font = `12px "IBM Plex Mono", monospace`; g.fillStyle = COL.muted;
+    for (const s of D.speech) if (s.start < now + span / 2 && s.end > now - span / 2) g.fillText(`"${s.text}"`, Math.max(6, x(s.start) + 4), 16);
+    g.strokeStyle = "rgba(13,13,18,.1)";
+    for (let t = Math.max(0, Math.ceil(now - span / 2)); t <= now + span / 2; t++) { g.beginPath(); g.moveTo(x(t), 26); g.lineTo(x(t), H - 18); g.stroke(); g.fillText(fmt(t).replace(".0", ""), x(t) + 3, H - 5); }
+    for (const [role, label, y, col] of [["therapist", "THERAPIST", H * .36, COL.t], ["client", "CLIENT", H * .7, COL.c]]) {
+      g.strokeStyle = "rgba(13,13,18,.25)"; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+      g.fillStyle = col; g.font = `600 12px "IBM Plex Mono", monospace`; g.fillText(label, 8, y - 18);
+      const tr = D.truth[role], es = D.methods[method][role];
+      for (const t of tr) { if (Math.abs(t - now) > span / 2) continue; const ok = t < t0 || near(es, t); g.lineWidth = 2; g.strokeStyle = ok ? COL.muted : COL.bad; g.beginPath(); g.arc(x(t), y, 10, 0, 7); g.stroke(); }
+      for (const t of es) { if (Math.abs(t - now) > span / 2) continue; g.fillStyle = near(tr, t) ? COL.good : COL.bad; g.beginPath(); g.arc(x(t), y, 5.5, 0, 7); g.fill(); }
+    }
+    g.strokeStyle = COL.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(W / 2, 22); g.lineTo(W / 2, H - 16); g.stroke(); star(g, W / 2, 22, 8, COL.ink);
+    // mini map
+    [g, W, H] = fit(mini); const mx = (t) => t / D.duration * W; g.clearRect(0, 0, W, H);
+    g.fillStyle = "rgba(255,255,255,.55)"; g.fillRect(0, 0, W, H);
+    const cols = { steady: "rgba(31,63,209,.35)", tempo: "rgba(31,63,209,.55)", call_response: "rgba(255,111,168,.5)", vocal: "rgba(13,13,18,.2)" };
+    g.font = `11px "IBM Plex Mono", monospace`;
+    for (const e of ex) { g.fillStyle = cols[e.kind]; g.fillRect(mx(e.start), 6, mx(e.end) - mx(e.start), H - 12); if (mx(e.end) - mx(e.start) > 80) { g.fillStyle = COL.ink; g.fillText(NAMES[e.kind], mx(e.start) + 5, H / 2 + 4); } }
+    g.fillStyle = COL.ink; g.fillRect(mx(now) - 1, 0, 2, H);
+    $("#clock").textContent = `${fmt(now)} / ${fmt(D.duration).replace(/\.\d$/, "")}`;
+    const e = ex.find((e) => now >= e.start && now < e.end);
+    if (e !== lastEx) { lastEx = e;
+      if (!e) { const before = now < (ex[0]?.start ?? 0); $("#exName").textContent = before ? "Calibration" : "Between exercises";
+        $("#exText").textContent = before ? "Each player taps alone five times. The calibrated method learns what each instrument sounds like from these taps." : "The therapist gives a spoken cue.";
+        ["#rTrue", "#rCal", "#rBlind"].forEach((s) => $(s).textContent = "n/a"); }
+      else { $("#exName").textContent = NAMES[e.kind] + (e.behaviour ? `: ${BEHAV[e.behaviour] || e.behaviour}` : "");
+        $("#exText").textContent = script.filter((l) => l.t >= e.start - 3 && l.t < e.end && !/says:/.test(l.text)).map((l) => `${fmt(l.t)}  ${l.text}`).join("\n");
+        const timed = e.kind === "steady" || e.kind === "tempo";
+        $("#rTrue").textContent = timed ? ms(e.true_async) : "n/a"; $("#rCal").textContent = timed ? ms(e.est_async) : "n/a"; $("#rBlind").textContent = timed ? ms(e.blind.est_async) : "n/a"; }
+    }
+  }
+  let vis = true; new IntersectionObserver(([e]) => vis = e.isIntersecting).observe(lanes);
+  (function loop() { if (vis || !audio.paused) draw(); else hitPulse(); requestAnimationFrame(loop); })();
+})();
+/* ---------------- who leads: live linear phase-correction model, measured live */
+(() => {
+  const cv = $("#leadCanvas"); const btns = [...document.querySelectorAll("[data-lead]")];
+  const A = { therapist: [0.05, 0.5], client: [0.5, 0.05], mutual: [0.25, 0.25] };
+  let lead = "therapist", th = [], cl = [], Pth = .62, Pcl = .62, P0 = .62, clock = 0;
+  const gauss = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-9)) * Math.cos(6.283 * Math.random());
+  function reset() { th = [clock]; cl = [clock + .02]; Pth = Pcl = P0; }
+  function step() {
+    const [aT, aC] = A[lead]; const bT = lead === "mutual" ? .15 : aT < .1 ? 0 : .3, bC = lead === "mutual" ? .15 : aC < .1 ? 0 : .3;
+    const wT = aT < .1 ? .025 : lead === "mutual" ? .012 : .006, wC = aC < .1 ? .025 : lead === "mutual" ? .012 : .006;
+    Pth = Math.min(P0 * 1.4, Math.max(P0 * .7, Pth * Math.exp(gauss() * wT))); Pcl = Math.min(P0 * 1.4, Math.max(P0 * .7, Pcl * Math.exp(gauss() * wC)));
+    const t1 = th.at(-1), c1 = cl.at(-1), iT = th.length > 1 ? t1 - th.at(-2) : Pth, iC = cl.length > 1 ? c1 - cl.at(-2) : Pcl;
+    th.push(t1 + Pth - aT * (t1 - c1) + gauss() * .01); cl.push(c1 + Pcl - aC * (c1 - t1) + gauss() * .02);
+    Pth += bT * (iC - Pth); Pcl += bC * (iT - Pcl);
+    if (th.length > 80) { th.shift(); cl.shift(); }
+  }
+  function gains(th, cl) { // least squares IOI(n) = c + b IOI(n-1) - alpha (own - other)(n-1), last 24 beats
+    const n = Math.min(24, th.length); if (n < 10) return null;
+    const T = th.slice(-n), C = cl.slice(-n), out = {};
+    for (const [who, own, oth] of [["th", T, C], ["cl", C, T]]) {
+      const X = [], y = [];
+      for (let k = 2; k < n; k++) { X.push([1, own[k - 1] - own[k - 2], own[k - 1] - oth[k - 1]]); y.push(own[k] - own[k - 1]); }
+      const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], v = [0, 0, 0];
+      X.forEach((r, i) => { for (let a = 0; a < 3; a++) { v[a] += r[a] * y[i]; for (let b = 0; b < 3; b++) M[a][b] += r[a] * r[b]; } });
+      for (let a = 0; a < 3; a++) M[a][a] += 1e-9;
+      for (let a = 0; a < 3; a++) { const p = M[a][a]; for (let b = a + 1; b < 3; b++) { const f = M[b][a] / p; for (let c = a; c < 3; c++) M[b][c] -= f * M[a][c]; v[b] -= f * v[a]; } }
+      const x = [0, 0, 0]; for (let a = 2; a >= 0; a--) { let s = v[a]; for (let c = a + 1; c < 3; c++) s -= M[a][c] * x[c]; x[a] = s / M[a][a]; }
+      out[who] = -x[2];
+    }
+    return out;
+  }
+  btns.forEach((b) => b.onclick = () => { lead = b.dataset.lead; btns.forEach((x) => x.setAttribute("aria-pressed", x === b)); reset(); $("#verdict").textContent = "Listening…"; });
+  reset();
+  const acc = (R.leader || {}); $("#leadAcc").innerHTML = ["therapist", "client", "mutual"].map((k) => acc[k] ? `<div><b>${Math.round(acc[k][1] * 100)}%</b><span>${k === "mutual" ? "both adapt" : k + " leads"}<br>n=${acc[k][0]}</span></div>` : "").join("");
+  let last = performance.now(), vis = false, lastV = 0;
+  new IntersectionObserver(([e]) => vis = e.isIntersecting).observe(cv);
+  function frame(now) {
+    requestAnimationFrame(frame); if (!vis) { last = now; return; }
+    const dt = Math.min(.1, (now - last) / 1000); last = now; clock += reduce ? 0 : dt;
+    if (reduce && th.length < 30) while (th.length < 30) step();
+    while (th.at(-1) < clock + 4 && th.length < 400) step();
+    const [g, W, H] = fit(cv); g.clearRect(0, 0, W, H);
+    const span = W < 500 ? 5 : 8, x = (t) => W * .82 + (t - clock) / span * W;
+    const yT = H * .2, yC = H * .44, base = H * .9, top = H * .58;
+    g.font = `600 12px "IBM Plex Mono", monospace`;
+    for (const [y, lab, col] of [[yT, "THERAPIST", COL.t], [yC, "CLIENT", COL.c]]) { g.strokeStyle = "rgba(13,13,18,.2)"; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); g.fillStyle = col; g.fillText(lab, 8, y - 16); }
+    for (let i = 0; i < th.length; i++) {
+      const a = th[i], c = cl[i]; if (x(a) < -20 || x(a) > W + 20) continue;
+      const past = a <= clock; g.globalAlpha = past ? 1 : .25;
+      g.strokeStyle = "rgba(13,13,18,.3)"; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(x(a), yT + 10); g.lineTo(x(c), yC - 12); g.stroke(); g.setLineDash([]);
+      g.fillStyle = COL.t; g.beginPath(); g.arc(x(a), yT, 9, 0, 7); g.fill(); star(g, x(c), yC, 12, COL.c);
+      g.globalAlpha = 1;
+    }
+    g.strokeStyle = COL.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(x(clock), 8); g.lineTo(x(clock), yC + 24); g.stroke(); g.lineWidth = 1;
+    // tempo traces
+    g.fillStyle = COL.muted; g.fillText("TEMPO", 8, top - 6);
+    const tempo = (arr, col) => { g.strokeStyle = col; g.lineWidth = 2.5; g.beginPath(); let first = true;
+      for (let i = 4; i < arr.length; i++) { if (arr[i] > clock) break; const bpm = 240 / (arr[i] - arr[i - 4]); const yy = base - Math.max(0, Math.min(1, (bpm - 60 / P0 + 22) / 44)) * (base - top); const xx = x(arr[i]); if (xx < 0) continue; first ? g.moveTo(xx, yy) : g.lineTo(xx, yy); first = false; }
+      g.stroke(); g.lineWidth = 1; };
+    tempo(th, COL.t); tempo(cl, COL.c);
+    if (now - lastV > 500) { lastV = now; const past = th.filter((t) => t <= clock).length;
+      const gg = gains(th.slice(0, past), cl.slice(0, past));
+      if (gg) { const d = gg.cl - gg.th; $("#verdict").textContent = d > .15 ? "Therapist leads" : d < -.15 ? "Client leads" : "Both adapt";
+        $("#vTh").textContent = gg.th.toFixed(2); $("#vCl").textContent = gg.cl.toFixed(2);
+        $("#mTh").style.width = Math.max(0, Math.min(1, gg.th)) * 100 + "%"; $("#mCl").style.width = Math.max(0, Math.min(1, gg.cl)) * 100 + "%"; } }
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ---------------- session report */
+(() => {
+  const sel = $("#clientSel"), wk = $("#weeks"); let ci = 0, w = 7, shown = false;
+  const NAMES = ["Client A", "Client B", "Client C", "Client D", "Client E"];
+  R.clients.forEach((c, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${NAMES[i]} ✦ ${c.instruments.client.replace("_", " ")}`; sel.appendChild(o); });
+  for (let i = 0; i < 8; i++) { const b = document.createElement("button"); b.type = "button"; b.textContent = i + 1; b.setAttribute("aria-label", `Week ${i + 1}`); b.onclick = () => { w = i; render(); }; wk.appendChild(b); }
+  sel.onchange = () => { ci = +sel.value; shown = false; render(); };
+  $("#reveal").onclick = () => { shown = !shown; render(); };
+  const pct = (v) => `${Math.round(v * 100)}%`;
+  const delta = (a, b, unit = " points") => { if (b == null || isNaN(b)) return ""; const d = Math.round((a - b) * 100); return d === 0 ? " (same as last week)" : ` <span class="${d > 0 ? "up" : "down"}">(${d > 0 ? "up" : "down"} ${Math.abs(d)}${unit})</span>`; };
+  function stats(wd) {
+    const play = wd.ex.filter((e) => e.kind !== "call_response"), joined = play.filter((e) => e.joined);
+    const share = play.reduce((s, e) => s + (e.share || 0), 0) / Math.max(1, play.length);
+    const ins = joined.filter((e) => e.insync != null); const insync = ins.length ? ins.reduce((s, e) => s + e.insync, 0) / ins.length : null;
+    const calls = wd.ex.find((e) => e.kind === "call_response"); return { play, joined, share, insync, answered: calls ? calls.answered : 0 };
+  }
+  function render() {
+    sel.value = ci; [...wk.children].forEach((b, i) => b.setAttribute("aria-pressed", i === w));
+    const c = R.clients[ci], wd = c.weeks[w], s = stats(wd), prev = w ? stats(c.weeks[w - 1]) : null;
+    $("#repTitle").textContent = `${NAMES[ci]} ✦ week ${w + 1}`;
+    $("#repMeta").textContent = `${c.instruments.therapist.replace("_", " ")} + ${c.instruments.client.replace("_", " ")} ✦ ${c.bpm} bpm ✦ ${Math.round(wd.duration / 60 * 10) / 10} min`;
+    const li = [];
+    li.push(`Joined in on <b>${s.joined.length} of ${s.play.length}</b> playing activities${prev ? (s.joined.length > prev.joined.length ? ` <span class="up">(${prev.joined.length} last week)</span>` : s.joined.length < prev.joined.length ? ` <span class="down">(${prev.joined.length} last week)</span>` : " (same as last week)") : ""}.`);
+    li.push(`Played along on <b>${pct(s.share)}</b> of the beats${prev ? delta(s.share, prev.share) : ""}.`);
+    const waits = s.joined.map((e) => e.join_beat).filter((v) => v != null);
+    if (waits.length) { const m = waits.sort((a, b) => a - b)[Math.floor(waits.length / 2)]; li.push(m <= 1 ? "Joined in straight away, usually within the first beat or two." : `Usually waited about <b>${m} beats</b> before joining in.`); }
+    if (s.insync != null) li.push(`When playing, <b>${pct(s.insync)}</b> of hits were in time (within 50 ms of the therapist).`);
+    li.push(`Answered <b>${s.answered} of 4</b> drum calls${prev ? (s.answered > prev.answered ? ` <span class="up">(${prev.answered} last week)</span>` : s.answered < prev.answered ? ` <span class="down">(${prev.answered} last week)</span>` : "") : ""}.`);
+    const fp = s.joined.filter((e) => e.kind === "free_play" && e.leader);
+    if (fp.length) li.push(`Free play: ${fp.map((e) => e.leader === "client" ? "<b>client led</b>" : e.leader === "therapist" ? "therapist led" : "both adapted").join(", ")}.`);
+    const best = s.play.slice().sort((a, b) => (b.share || 0) - (a.share || 0))[0];
+    if (best && best.share > .2) li.push(`Most playing to <b>${best.song}</b> (${pct(best.share)} of beats).`);
+    $("#repList").innerHTML = li.map((x) => `<li>${x}</li>`).join("");
+    // progress chart
+    const [g, W, H] = fit($("#progCanvas")); g.clearRect(0, 0, W, H);
+    const L = 34, Rr = W - 14, T = 16, B = H - 26, X = (i) => L + i / 7 * (Rr - L), Y = (v) => B - v * (B - T);
+    g.font = `11px "IBM Plex Mono", monospace`; g.fillStyle = COL.muted; g.strokeStyle = "rgba(13,13,18,.12)";
+    for (const v of [0, .5, 1]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(Rr, Y(v)); g.stroke(); g.fillText(pct(v), 2, Y(v) + 4); }
+    for (let i = 0; i < 8; i++) g.fillText(`W${i + 1}`, X(i) - 8, H - 8);
+    g.fillText("engagement score", L + 4, T - 4);
+    const line = (key, col, dash) => { g.strokeStyle = col; g.lineWidth = 2.5; g.setLineDash(dash); g.beginPath(); c.weeks.forEach((d, i) => i ? g.lineTo(X(i), Y(d[key])) : g.moveTo(X(i), Y(d[key]))); g.stroke(); g.setLineDash([]); g.lineWidth = 1; };
+    line("score_true", COL.muted, [5, 5]); line("score_est", COL.t, []);
+    c.weeks.forEach((d, i) => { g.fillStyle = i === w ? COL.c : COL.t; g.beginPath(); g.arc(X(i), Y(d.score_est), i === w ? 7 : 4, 0, 7); g.fill(); });
+    // songs, cumulative to this week
+    const tally = {}; R.songs.forEach((s) => tally[s] = []);
+    c.weeks.slice(0, w + 1).forEach((d) => d.ex.forEach((e) => { if (e.song) tally[e.song].push(e.share || 0); }));
+    const rows = R.songs.map((s) => ({ s, n: tally[s].length, m: tally[s].length ? tally[s].reduce((a, b) => a + b, 0) / tally[s].length : 0 })).sort((a, b) => b.m - a.m);
+    $("#songs").innerHTML = rows.map((r) => `<div class="song ${shown && r.s === c.favourite ? "fav" : ""}"><span>${r.s}</span><span class="tr"><i style="width:${r.m * 100}%"></i></span><b>${r.n ? pct(r.m) : "n/a"}</b></div>`).join("");
+    $("#reveal").textContent = shown ? "Hide the favourite" : "Reveal the hidden favourite";
+    const rank = rows.findIndex((r) => r.s === c.favourite) + 1;
+    $("#songNote").textContent = shown ? `After ${w + 1} session${w ? "s" : ""}, the favourite ranks #${rank} of ${rows.length}. Across 300 simulated clients, it takes about ${R.songCurve.top1.findIndex((v) => v >= .7) + 1} sessions before the top song is the favourite 70% of the time, so one good session proves little.` : "Each bar is the share of beats the client played during that song.";
+  }
+  render();
+})();
+</script>

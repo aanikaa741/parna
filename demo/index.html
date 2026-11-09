@@ -1,0 +1,196 @@
+<title>Who Kept the Beat?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Instrument+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centred column. Transport and lane view on top, the exercise readout under it, method notes last. */
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6860; --line: #dedbd2;
+  --therapist: #2b59c3; --client: #c2410c; --good: #2f7d4f; --bad: #c0362c; --band: #ece9e0;
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Instrument Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15161a; --panel: #1d1f24; --ink: #ecebe6; --muted: #9a988f; --line: #33353c;
+  --therapist: #7ea2ff; --client: #ff9a5c; --good: #6fcf97; --bad: #ff7a6e; --band: #262830; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15161a; --panel: #1d1f24; --ink: #ecebe6; --muted: #9a988f; --line: #33353c;
+  --therapist: #7ea2ff; --client: #ff9a5c; --good: #6fcf97; --bad: #ff7a6e; --band: #262830; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font: 700 clamp(28px, 5vw, 44px)/1.05 var(--display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 700 18px/1.2 var(--display); margin: 0; }
+.lede { color: var(--muted); max-width: 64ch; margin: 8px 0 0; }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.transport { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+button { font: 600 14px var(--body); color: var(--ink); background: var(--band); border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--therapist); outline-offset: 2px; }
+#play { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 92px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.time { font: 600 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); margin-left: auto; }
+canvas { width: 100%; display: block; }
+#lanes { height: 190px; }
+#overview { height: 46px; cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ring { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid var(--muted); }
+.now { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 640px) { .now { grid-template-columns: 1fr; } .time { margin-left: 0; } }
+.script { font: 13px/1.5 var(--mono); color: var(--muted); margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.readout { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: baseline; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.row b { font: 600 16px var(--mono); font-variant-numeric: tabular-nums; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.stat .v { font: 700 26px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stat .k { font-size: 13px; color: var(--muted); }
+.notes p { margin: 0; max-width: 70ch; }
+.notes { display: grid; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="tag">Beat Sync, simulated session</div>
+    <h1>Who kept the beat?</h1>
+    <p class="lede">A two-minute simulated music therapy session, heard by one phone on the table. The therapist plays a frame drum, the client a shaker, at 90 beats per minute. Press play and watch which hits each method finds, and how far off its timing is.</p>
+  </header>
+
+  <section class="panel" aria-label="Session player">
+    <div class="transport">
+      <button id="play" type="button">Play</button>
+      <div class="seg" role="group" aria-label="Detection method">
+        <button id="m-cal" type="button" aria-pressed="true">Calibrated</button>
+        <button id="m-blind" type="button" aria-pressed="false">Standard detector</button>
+      </div>
+      <span class="time" id="time">0:00.0 / 0:00</span>
+    </div>
+    <canvas id="lanes" role="img" aria-label="Hit lanes for therapist and client around the current moment"></canvas>
+    <canvas id="overview" role="img" aria-label="Whole session; click to jump"></canvas>
+    <div class="legend">
+      <span><i class="ring"></i>true hit (answer key)</span>
+      <span><i class="dot" style="background:var(--good)"></i>found, within 50 ms</span>
+      <span><i class="dot" style="background:var(--bad)"></i>wrong hit or missed</span>
+    </div>
+    <audio id="audio" preload="auto"></audio>
+  </section>
+
+  <section class="now">
+    <div class="panel">
+      <div class="tag">Now</div>
+      <h2 id="exName">Before the session</h2>
+      <p class="script" id="exScript">The therapist explains, then each player taps alone five times. Those taps teach the calibrated method what each instrument sounds like.</p>
+    </div>
+    <div class="panel readout">
+      <div class="tag">Client timing in this exercise</div>
+      <div class="row"><span>True average</span><b id="rTrue">n/a</b></div>
+      <div class="row"><span>Calibrated measures</span><b id="rCal">n/a</b></div>
+      <div class="row"><span>Standard detector measures</span><b id="rBlind">n/a</b></div>
+      <div class="tag" id="rNote">Shown for steady-beat and tempo exercises</div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="Whole-session accuracy">
+    <div class="stat"><div class="v" id="sCal">-</div><div class="k">Calibrated: share of hits found correctly (F1, therapist / client)</div></div>
+    <div class="stat"><div class="v" id="sBlind">-</div><div class="k">Standard detector: same score</div></div>
+  </section>
+
+  <section class="panel notes">
+    <h2>What you are looking at</h2>
+    <p>The standard detector finds onsets in the mixed recording, then sorts them into two groups by sound. When the client plays in time, both hits land within a few milliseconds and it hears one hit, so the therapist's beat drops out exactly when the client is doing well, and the timing it reports is off by hundreds of milliseconds.</p>
+    <p>The calibrated method first learns each instrument from the five solo taps, then splits the recording into "how much drum" and "how much shaker" at every moment (non-negative matrix factorisation). Hits that land together stay separate.</p>
+    <p>This is simulated audio: a modelled room, synthesised instruments and a text-to-speech therapist, with every hit time known exactly. Across 60 such sessions the calibrated method measured client timing within a median 3 to 4 ms for different-sounding instruments; two identical drums remain unsolved.</p>
+  </section>
+</div>
+
+<script>
+const D = {"duration": 128.743492063492, "bpm": 90.0, "instruments": {"therapist": "frame_drum", "client": "shaker"}, "rt60": 0.3, "snr_db": 10.0, "calibration": {"therapist": [4.6137414965986405, 7.46374149659864], "client": [8.163741496598641, 11.01374149659864]}, "truth": {"therapist": [4.7262, 5.2459, 5.7893, 6.3517, 6.8594, 13.8523, 14.508, 15.1878, 15.8402, 16.5237, 17.1875, 17.8506, 18.5052, 19.1876, 19.8629, 20.5364, 21.1742, 21.8506, 22.5142, 23.175, 23.8396, 24.5269, 28.4847, 29.4827, 29.814, 30.1445, 34.1128, 35.4405, 35.7734, 36.1123, 36.4419, 39.7398, 40.419, 42.0833, 49.5278, 50.1989, 50.8672, 51.5379, 52.1999, 52.8668, 53.5579, 54.2582, 54.9687, 55.71, 56.4691, 57.2516, 58.063, 58.8738, 59.6996, 60.5555, 61.4259, 62.3117, 63.2063, 64.0933, 64.9803, 65.8585, 66.7458, 67.6553, 72.4304, 73.0958, 73.7535, 74.4463, 75.0839, 75.7614, 76.4348, 77.0945, 77.7642, 78.4284, 79.0724, 79.7529, 80.4232, 81.096, 81.7583, 82.4305, 83.0966, 86.4539, 87.1121, 87.7784, 88.4569, 89.1142, 89.7721, 90.439, 91.1163, 91.7888, 92.4429, 93.1039, 93.7746, 94.4353, 95.1154, 95.7794, 96.4309, 101.8857, 102.2313, 104.2374, 107.5294, 108.1962, 108.5367, 109.1984, 109.523, 113.1571, 113.4912, 113.8394, 114.1686, 118.7909, 119.135, 119.4706, 120.116, 120.4532], "client": [8.2583, 8.7799, 9.3469, 9.9405, 10.4895, 13.8721, 14.5569, 15.2748, 15.9512, 16.6643, 17.3578, 18.0457, 18.779, 19.4597, 20.1867, 20.8759, 21.5902, 22.2811, 22.9675, 23.6727, 24.378, 25.0676, 31.3813, 32.3882, 32.7183, 33.0538, 36.8599, 37.9241, 38.1991, 38.5186, 38.764, 42.3528, 43.0368, 44.6953, 49.5299, 50.1998, 50.8789, 51.5421, 52.1964, 52.8523, 53.5047, 54.1715, 54.8501, 55.5146, 56.1693, 56.8508, 57.549, 58.2716, 59.0039, 59.7796, 60.56, 61.3539, 62.1804, 63.0139, 63.867, 64.7303, 65.6064, 66.4893, 72.4264, 73.7711, 75.109, 76.4541, 77.7422, 79.0542, 80.3926, 81.7453, 83.1016, 104.6264, 104.8919, 106.4571, 110.1668, 110.8391, 111.2225, 111.8495, 112.1608, 115.9091, 116.2467, 116.503, 116.8664, 121.469, 121.7905, 122.0969, 122.8265, 123.1272]}, "methods": {"blind": {"therapist": [12.0744, 14.3151, 14.5183, 14.9711, 15.1975, 15.6502, 15.8534, 16.3062, 16.5326, 16.9912, 17.2002, 17.653, 17.862, 18.3147, 18.5179, 18.9707, 19.1971, 19.6499, 19.8763, 20.5497, 21.1882, 21.8616, 22.5234, 23.1851, 23.6437, 23.8527, 24.3055, 24.5377, 24.9963, 26.5985, 28.4967, 28.9553, 29.4951, 29.826, 29.9595, 30.1569, 30.6097, 34.1217, 34.5745, 35.4511, 35.782, 36.1244, 36.4553, 39.7526, 40.2054, 40.4317, 40.8903, 42.092, 45.9987, 47.3049, 49.9984, 50.6659, 51.3335, 52.0011, 52.6629, 53.3362, 54.0212, 54.2766, 54.7236, 54.979, 55.7221, 56.4825, 57.2604, 57.719, 58.0731, 58.5259, 58.8858, 59.3386, 59.7101, 60.1629, 61.022, 61.887, 62.3224, 62.7751, 63.2163, 63.6749, 64.1045, 64.5631, 64.9927, 65.4512, 65.8692, 66.322, 66.7574, 67.2102, 67.6688, 68.1215, 68.9284, 70.6061, 72.899, 73.108, 74.2226, 74.4548, 74.9134, 75.5461, 75.7725, 76.2253, 76.9045, 77.1077, 77.5605, 78.228, 78.437, 79.5341, 79.7663, 80.2133, 80.8867, 81.1073, 81.5659, 82.2335, 82.4424, 82.8952, 83.5628, 86.4653, 86.9239, 87.1213, 87.7946, 89.1356, 89.7858, 90.4533, 90.9061, 91.1267, 91.5853, 91.8001, 92.2529, 92.4561, 93.1178, 93.5706, 93.7854, 94.244, 94.4472, 94.9058, 95.1263, 95.5791, 95.7881, 96.2525, 96.4441, 96.9027, 100.0083, 101.895, 102.2433, 102.6961, 104.246, 107.5374, 107.996, 108.205, 108.5475, 109.0003, 109.2093, 109.5343, 109.6795, 109.9871, 113.1683, 113.5049, 113.8532, 114.1783, 118.7991, 119.1474, 119.2693, 119.4783, 119.9369, 120.1284, 120.4651, 120.9179], "client": [11.8306, 12.2253, 12.6142, 12.7478, 12.9451, 13.8623, 14.5763, 15.2903, 15.9637, 16.6777, 17.3743, 18.0593, 18.7966, 19.4757, 20.2014, 20.3291, 20.8922, 21.6062, 22.297, 22.982, 23.6902, 24.3926, 25.0834, 25.7974, 27.0745, 27.5795, 31.3934, 32.4034, 32.7343, 33.0652, 36.8733, 37.9356, 38.2142, 38.5335, 38.7831, 42.2719, 43.0498, 44.71, 45.1222, 48.3439, 49.5398, 50.2073, 50.8807, 51.5483, 52.2101, 52.866, 53.522, 54.1838, 54.8629, 55.5305, 56.1749, 56.8657, 57.5623, 58.2879, 59.0193, 59.7972, 60.5693, 61.3703, 61.44, 62.1946, 63.0306, 63.8781, 64.743, 65.6196, 66.502, 69.3522, 69.6366, 70.728, 70.937, 71.2853, 72.4405, 73.764, 75.0933, 76.4459, 77.7578, 78.6808, 79.0698, 80.4049, 81.7575, 83.11, 84.3755, 85.0315, 85.3391, 85.5423, 97.7966, 99.2073, 100.4902, 100.9894, 104.6407, 104.9078, 106.4693, 110.1787, 110.8521, 111.2352, 111.8621, 112.1756, 115.9256, 116.2623, 116.5177, 116.8834, 121.481, 121.8061, 122.1137, 122.8394, 123.1412, 125.0453, 125.8522, 126.2875, 126.3688, 126.7171], "f1_therapist": 0.6264150943396226, "f1_client": 0.8253968253968254, "exercises": [{"kind": "steady", "behaviour": "drift", "start": 11.813741496598642, "end": 25.18326530612245, "true_async": 20.457588577121427, "est_async": 105.65079365079332, "true_insync": 0.125, "est_insync": 0.05}, {"kind": "call_response", "behaviour": null, "start": 25.783265306122452, "end": 45.38154195011338, "true_async": 851.619260296851, "est_async": 422.79667422524795, "true_insync": 0.0, "est_insync": 0.0}, {"kind": "tempo", "behaviour": null, "start": 47.29174603174604, "end": 68.31224489795916, "true_async": -42.96345851362915, "est_async": 152.7873015873027, "true_insync": 0.2916666666666667, "est_insync": 0.0}, {"kind": "steady", "behaviour": "half", "start": 68.91224489795916, "end": 83.76022675736958, "true_async": -2.318723139459343, "est_async": 308.6318972033245, "true_insync": 1.0, "est_insync": 0.0}, {"kind": "vocal", "behaviour": null, "start": 84.36022675736957, "end": 97.11278911564622, "true_async": NaN, "est_async": NaN, "true_insync": NaN, "est_insync": NaN}, {"kind": "call_response", "behaviour": null, "start": 99.1943310657596, "end": 124.42594104308384, "true_async": 1217.3693882263185, "est_async": 763.6785084404115, "true_insync": 0.0, "est_insync": 0.0}]}, "calibrated": {"therapist": [13.8565, 14.5125, 15.1917, 15.8476, 16.5326, 17.1944, 17.8561, 18.5121, 19.1913, 19.8705, 20.5439, 21.1824, 21.8558, 22.5234, 23.1793, 23.8469, 24.5319, 28.4909, 29.4893, 29.8202, 30.1511, 34.1217, 35.4453, 35.782, 36.1186, 36.4495, 39.7468, 40.4259, 42.092, 45.1222, 49.534, 50.2073, 50.8749, 51.5425, 52.2043, 52.8718, 53.5684, 54.265, 54.9732, 55.7163, 56.4767, 57.2604, 58.0673, 58.88, 59.7043, 60.5634, 61.4342, 62.3166, 63.2105, 64.0987, 64.9868, 65.8634, 66.7516, 67.6629, 72.4346, 73.1022, 73.7582, 74.4548, 75.0875, 75.7667, 76.4401, 77.1019, 77.7694, 78.437, 78.6808, 79.0814, 79.7605, 80.4339, 81.1015, 81.7633, 82.4366, 83.1042, 86.4595, 87.1213, 87.783, 88.4622, 89.124, 89.78, 90.4475, 91.1209, 91.7943, 92.4502, 93.112, 93.7796, 94.4414, 95.1205, 95.7881, 96.4383, 101.8892, 102.2375, 104.246, 107.5374, 108.1992, 108.5417, 109.2034, 109.5343, 113.1624, 113.4991, 113.8474, 114.1783, 118.7991, 119.1416, 119.4783, 120.1226, 120.4593], "client": [13.8855, 14.5647, 15.2845, 15.9637, 16.6719, 17.3685, 18.0535, 18.7907, 19.4699, 20.1956, 20.8863, 21.6004, 22.2912, 22.9761, 23.6844, 24.3868, 25.0776, 31.3934, 32.3976, 32.7285, 33.0652, 36.8675, 37.9356, 38.2084, 38.5277, 38.7773, 42.3648, 43.044, 44.7042, 49.5456, 50.2132, 50.8923, 51.5541, 52.2101, 52.8602, 53.5162, 54.1838, 54.8629, 55.5247, 56.1807, 56.8599, 57.5565, 58.2821, 59.0135, 59.7914, 60.5693, 61.3645, 62.1888, 63.0248, 63.8781, 64.743, 65.6138, 66.4961, 72.4405, 73.7814, 75.1224, 76.4691, 77.752, 79.0639, 80.4049, 81.7575, 83.1158, 104.6349, 104.902, 106.4693, 110.1787, 110.8463, 111.2352, 111.8621, 112.1698, 115.9198, 116.2565, 116.5119, 116.8776, 121.481, 121.8003, 122.1079, 122.8394, 123.1354], "f1_therapist": 0.9903846153846153, "f1_client": 1.0, "exercises": [{"kind": "steady", "behaviour": "drift", "start": 11.813741496598642, "end": 25.18326530612245, "true_async": 20.457588577121427, "est_async": 24.30839002267504, "true_insync": 0.125, "est_insync": 0.0625}, {"kind": "call_response", "behaviour": null, "start": 25.783265306122452, "end": 45.38154195011338, "true_async": 851.619260296851, "est_async": 658.8662131519291, "true_insync": 0.0, "est_insync": 0.0}, {"kind": "tempo", "behaviour": null, "start": 47.29174603174604, "end": 68.31224489795916, "true_async": -42.96345851362915, "est_async": -38.45804988662109, "true_insync": 0.2916666666666667, "est_insync": 0.2916666666666667}, {"kind": "steady", "behaviour": "half", "start": 68.91224489795916, "end": 83.76022675736958, "true_async": -2.318723139459343, "est_async": 3.8699924414215854, "true_insync": 1.0, "est_insync": 1.0}, {"kind": "vocal", "behaviour": null, "start": 84.36022675736957, "end": 97.11278911564622, "true_async": NaN, "est_async": NaN, "true_insync": NaN, "est_insync": NaN}, {"kind": "call_response", "behaviour": null, "start": 99.1943310657596, "end": 124.42594104308384, "true_async": 1217.3693882263185, "est_async": 1217.3890508584414, "true_insync": 0.0, "est_insync": 0.0}]}}, "speech": [{"start": 0.8, "end": 4.31374149659864, "text": "First, tap your drum five times on your own."}, {"start": 11.813741496598642, "end": 13.449931972789118, "text": "Keep the beat with me."}, {"start": 25.783265306122452, "end": 28.081541950113383, "text": "I play, then you copy me."}, {"start": 45.98154195011338, "end": 46.89174603174604, "text": "Nice!"}, {"start": 47.29174603174604, "end": 49.13446712018141, "text": "Now let's slow down."}, {"start": 68.91224489795916, "end": 72.02689342403625, "text": "Let's play together. Ready, go."}, {"start": 84.36022675736957, "end": 86.04612244897955, "text": "Can you sing ah with me?"}, {"start": 97.71278911564622, "end": 98.7943310657596, "text": "Well done."}, {"start": 99.1943310657596, "end": 101.49260770975053, "text": "I play, then you copy me."}, {"start": 125.02594104308383, "end": 127.343492063492, "text": "That's the end. Thank you!"}], "script": ["00:00.80  THERAPIST says: \"First, tap your drum five times on your own.\"", "00:04.71  THERAPIST taps alone 5 times (calibration)", "00:08.26  CLIENT taps alone 5 times (calibration)", "00:11.81  STEADY BEAT, 17 beats at 90 bpm. Client: drift", "00:11.81  THERAPIST says: \"Keep the beat with me.\"", "00:25.78  THERAPIST says: \"I play, then you copy me.\"", "00:28.48  CALL: therapist plays 4 hits at beats 0.0, 1.5, 2.0, 2.5; client response: late start", "00:34.11  CALL: therapist plays 5 hits at beats 0.0, 2.0, 2.5, 3.0, 3.5; client response: rushed", "00:39.75  CALL: therapist plays 3 hits at beats 0.0, 1.0, 3.5; client response: copy", "00:45.98  THERAPIST says: \"Nice!\"", "00:47.29  TEMPO CHANGE x0.75 over 12 beats; client follows 5 beats behind", "00:47.29  THERAPIST says: \"Now let's slow down.\"", "01:08.91  STEADY BEAT, 17 beats at 90 bpm. Client: half", "01:08.91  THERAPIST says: \"Let's play together. Ready, go.\"", "01:24.36  THERAPIST says: \"Can you sing ah with me?\"", "01:26.45  SINGING: therapist sings aah over a soft beat; client joins in", "01:37.71  THERAPIST says: \"Well done.\"", "01:39.19  THERAPIST says: \"I play, then you copy me.\"", "01:41.89  CALL: therapist plays 3 hits at beats 0.0, 0.5, 3.5; client response: rushed", "01:47.53  CALL: therapist plays 5 hits at beats 0.0, 1.0, 1.5, 2.5, 3.0; client response: copy", "01:53.16  CALL: therapist plays 4 hits at beats 0.0, 0.5, 1.0, 1.5; client response: copy", "01:58.79  CALL: therapist plays 5 hits at beats 0.0, 0.5, 1.0, 2.0, 2.5; client response: copy", "02:05.03  THERAPIST says: \"That's the end. Thank you!\""]};
+// load the audio as a blob so seeking works on any host
+fetch("session.mp3").then((r) => r.blob()).then((b) => { document.querySelector("#audio").src = URL.createObjectURL(b); }).catch(() => {});
+const $ = (s) => document.querySelector(s);
+const audio = $("#audio"), lanes = $("#lanes"), ov = $("#overview");
+let method = "calibrated";
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+const NAMES = { steady: "Steady beat", call_response: "Call and response", tempo: "Tempo change", vocal: "Singing together" };
+const BEHAV = { sync: "client plays in time", late: "client plays late", drift: "client drifts off the tempo", catchup: "client starts late and catches up", half: "client plays every other beat", stop_start: "client stops, then comes back in" };
+const exercises = D.methods.calibrated.exercises.map((e, i) => ({ ...e, blind: D.methods.blind.exercises[i] }));
+const scriptLines = D.script.map((l) => { const m = l.match(/^(\d+):(\d+\.\d+)\s+(.*)$/); return m ? { t: +m[1] * 60 + +m[2], text: m[3] } : null; }).filter(Boolean);
+
+function near(arr, t, tol = 0.05) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < t) lo = m + 1; else hi = m; } return (lo < arr.length && Math.abs(arr[lo] - t) <= tol) || (lo > 0 && Math.abs(arr[lo - 1] - t) <= tol); }
+const t0 = D.calibration.client[1];
+const score = (m) => `${D.methods[m].f1_therapist.toFixed(2)} / ${D.methods[m].f1_client.toFixed(2)}`;
+$("#sCal").textContent = score("calibrated"); $("#sBlind").textContent = score("blind");
+
+function setMethod(m) { method = m; $("#m-cal").setAttribute("aria-pressed", m === "calibrated"); $("#m-blind").setAttribute("aria-pressed", m === "blind"); }
+$("#m-cal").onclick = () => setMethod("calibrated"); $("#m-blind").onclick = () => setMethod("blind");
+$("#play").onclick = () => { if (audio.paused) { audio.play().catch(() => {}); } else audio.pause(); };
+audio.addEventListener("play", () => $("#play").textContent = "Pause");
+audio.addEventListener("pause", () => $("#play").textContent = "Play");
+ov.addEventListener("click", (e) => { const r = ov.getBoundingClientRect(); audio.currentTime = ((e.clientX - r.left) / r.width) * D.duration; draw(); });
+
+function size(c) { const dpr = Math.min(devicePixelRatio || 1, 2); const w = c.clientWidth, h = c.clientHeight; if (c.width !== w * dpr) { c.width = w * dpr; c.height = h * dpr; } const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); return [g, w, h]; }
+const ms = (v) => v == null ? "n/a" : `${Math.abs(v).toFixed(0)} ms ${v >= 0 ? "late" : "early"}`;
+
+function drawLanes(now) {
+  const [g, W, H] = size(lanes); const span = 6, x = (t) => W / 2 + (t - now) / span * W;
+  g.clearRect(0, 0, W, H);
+  const lanesDef = [["therapist", "Therapist, frame drum", 52], ["client", "Client, shaker", 132]];
+  g.fillStyle = css("--band");
+  for (const s of D.speech) if (s.end > now - span / 2 && s.start < now + span / 2) { g.fillRect(x(s.start), 0, x(s.end) - x(s.start), H); }
+  g.font = `12px ${css("--body")}`; g.fillStyle = css("--muted");
+  for (const s of D.speech) if (s.start < now + span / 2 && s.end > now - span / 2) g.fillText(`"${s.text}"`, Math.max(4, x(s.start) + 4), 14);
+  // beat grid in seconds
+  g.strokeStyle = css("--line"); g.lineWidth = 1;
+  for (let t = Math.max(0, Math.ceil(now - span / 2)); t <= now + span / 2; t++) { g.beginPath(); g.moveTo(x(t), 22); g.lineTo(x(t), H - 18); g.stroke(); g.fillText(fmt(t).replace(".0", ""), x(t) + 3, H - 4); }
+  for (const [role, label, y] of lanesDef) {
+    g.strokeStyle = css("--line"); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    g.fillStyle = css(role === "therapist" ? "--therapist" : "--client"); g.font = `600 12px ${css("--body")}`; g.fillText(label, 6, y - 18);
+    const truth = D.truth[role], est = D.methods[method][role];
+    for (const t of truth) { if (Math.abs(t - now) > span / 2) continue; const ok = t < t0 || near(est, t); g.beginPath(); g.arc(x(t), y, 9, 0, 7); g.lineWidth = 2; g.strokeStyle = ok ? css("--muted") : css("--bad"); g.stroke(); }
+    for (const t of est) { if (Math.abs(t - now) > span / 2) continue; const ok = near(truth, t); g.beginPath(); g.arc(x(t), y, 5, 0, 7); g.fillStyle = ok ? css("--good") : css("--bad"); g.fill(); }
+  }
+  g.strokeStyle = css("--ink"); g.lineWidth = 2; g.beginPath(); g.moveTo(W / 2, 20); g.lineTo(W / 2, H - 16); g.stroke();
+}
+
+function drawOverview(now) {
+  const [g, W, H] = size(ov); const x = (t) => t / D.duration * W;
+  g.clearRect(0, 0, W, H); g.fillStyle = css("--band"); g.fillRect(0, 0, W, H);
+  const cols = { steady: "--therapist", tempo: "--therapist", call_response: "--client", vocal: "--muted" };
+  for (const e of exercises) { g.globalAlpha = 0.35; g.fillStyle = css(cols[e.kind]); g.fillRect(x(e.start), 6, x(e.end) - x(e.start), H - 12); g.globalAlpha = 1; }
+  g.fillStyle = css("--muted"); g.font = `11px ${css("--body")}`;
+  for (const e of exercises) { const w = x(e.end) - x(e.start); if (w > 70) g.fillText(NAMES[e.kind], x(e.start) + 5, H / 2 + 4); }
+  g.fillStyle = css("--ink"); g.fillRect(x(now) - 1, 0, 2, H);
+}
+
+let lastEx = null;
+function updateReadout(now) {
+  const e = exercises.find((e) => now >= e.start && now < e.end);
+  if (e === lastEx) return; lastEx = e;
+  if (!e) {
+    const before = now < (exercises[0]?.start ?? 0);
+    $("#exName").textContent = before ? "Calibration" : "Between exercises";
+    $("#exScript").textContent = before ? "The therapist explains, then each player taps alone five times. Those taps teach the calibrated method what each instrument sounds like." : "Spoken cues from the therapist.";
+    ["#rTrue", "#rCal", "#rBlind"].forEach((s) => $(s).textContent = "n/a"); return;
+  }
+  $("#exName").textContent = NAMES[e.kind] + (e.behaviour ? `: ${BEHAV[e.behaviour] || e.behaviour}` : "");
+  $("#exScript").textContent = scriptLines.filter((l) => l.t >= e.start - 3 && l.t < e.end && !/says:/.test(l.text)).map((l) => `${fmt(l.t)}  ${l.text}`).join("\n") || "";
+  const timed = e.kind === "steady" || e.kind === "tempo";
+  $("#rTrue").textContent = timed ? ms(e.true_async) : "n/a";
+  $("#rCal").textContent = timed ? ms(e.est_async) : "n/a";
+  $("#rBlind").textContent = timed ? ms(e.blind.est_async) : "n/a";
+}
+
+function draw() { const now = audio.currentTime || 0; drawLanes(now); drawOverview(now); updateReadout(now); $("#time").textContent = `${fmt(now)} / ${fmt(D.duration).replace(/\.\d$/, "")}`; }
+function loop() { draw(); requestAnimationFrame(loop); }
+audio.currentTime = 0; draw(); requestAnimationFrame(loop);
+addEventListener("resize", draw);
+</script>
